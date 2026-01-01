@@ -635,52 +635,33 @@ export default function App() {
     }
   };
 
-  const handleRightClick = async (e, row, col) => {
+  // 右クリックのcontextmenuを無効化
+  const handleContextMenu = (e) => {
     e.preventDefault();
-    if (gameState !== 'playing' || !board) return;
-
-    const cell = board[row][col];
-    if (cell.isRevealed) return;
-
-    const cellRef = ref(database, `rooms/${roomId}/board/${row}/${col}`);
-    await runTransaction(cellRef, (currentCell) => {
-      if (!currentCell || currentCell.isRevealed) return currentCell;
-      currentCell.mark = (currentCell.mark + 1) % 10;
-      return currentCell;
-    });
   };
 
-  const handleWheel = async (e, row, col) => {
-    if (gameState !== 'playing' || !board) return;
-
-    const cell = board[row][col];
-    if (cell.isRevealed || cell.mark === 0) return;
-
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? -1 : 1;
-
-    const cellRef = ref(database, `rooms/${roomId}/board/${row}/${col}`);
-    await runTransaction(cellRef, (currentCell) => {
-      if (!currentCell || currentCell.isRevealed || currentCell.mark === 0) return currentCell;
-      let newMark = currentCell.mark + delta;
-      if (newMark > 9) newMark = 1;
-      if (newMark < 1) newMark = 9;
-      currentCell.mark = newMark;
-      return currentCell;
-    });
-  };
-
-  // 右クリック長押し：マーキング解除（長押し判定の瞬間に発動）
+  // 右クリック：押した瞬間にマーキング、長押しで解除
   const handleRightMouseDown = async (e, row, col) => {
     if (e.button !== 2) return;
+    e.preventDefault();
+    
+    if (gameState !== 'playing' || !board) return;
+    
+    const cell = board[row][col];
+    if (cell.isRevealed) return;
     
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current);
     }
     
+    // 長押し判定されたかどうかのフラグ
+    const longPressTriggeredRef = { current: false };
+    
     setRightClickStart({ row, col });
     
+    // 長押しタイマー開始（500msで解除）
     longPressTimerRef.current = setTimeout(async () => {
+      longPressTriggeredRef.current = true;
       const cellRef = ref(database, `rooms/${roomId}/board/${row}/${col}`);
       await runTransaction(cellRef, (currentCell) => {
         if (!currentCell || currentCell.isRevealed) return currentCell;
@@ -689,6 +670,14 @@ export default function App() {
       });
       setRightClickStart(null);
     }, 500);
+    
+    // 押した瞬間にマーキング（数値を1増やす）
+    const cellRef = ref(database, `rooms/${roomId}/board/${row}/${col}`);
+    await runTransaction(cellRef, (currentCell) => {
+      if (!currentCell || currentCell.isRevealed) return currentCell;
+      currentCell.mark = (currentCell.mark + 1) % 10;
+      return currentCell;
+    });
   };
 
   const handleRightMouseUp = (e, row, col) => {
@@ -779,7 +768,7 @@ export default function App() {
   if (screen === 'lobby') {
     return (
       <div className="lobby">
-        <h1>👹 マモノスイーパー</h1>
+        <h1>🐲 マモノスイーパー</h1>
         <p className="subtitle">協力マルチプレイ</p>
         
         <div className="lobby-form">
@@ -819,7 +808,7 @@ export default function App() {
       {showCopyToast && <div className="copy-toast">コピーしました！</div>}
 
       <div className="game-header">
-        <h1>👹 マモノスイーパー</h1>
+        <h1>🐲 マモノスイーパー</h1>
         <div className="room-info">
           ルームID: <span className="room-id">{roomId}</span>
           <button onClick={() => {
@@ -917,7 +906,7 @@ export default function App() {
               <span className="status-value">{formatTime(time)}</span>
             </div>
             <div className="status-item">
-              <span className="status-label">👹</span>
+              <span className="status-label">🐲</span>
               <span className="status-value">{remainingMonsters}</span>
             </div>
             <button onClick={resetGame} className="btn-reset-small">🔄</button>
@@ -944,10 +933,9 @@ export default function App() {
                     data-pos={`${r}-${c}`}
                     className={getCellClass(cell)}
                     onClick={() => handleClick(r, c)}
-                    onContextMenu={(e) => handleRightClick(e, r, c)}
+                    onContextMenu={handleContextMenu}
                     onMouseDown={(e) => handleRightMouseDown(e, r, c)}
                     onMouseUp={(e) => handleRightMouseUp(e, r, c)}
-                    onWheel={(e) => handleWheel(e, r, c)}
                   >
                     {getCellContent(cell)}
                   </div>
@@ -979,11 +967,11 @@ export default function App() {
       )}
 
       <div className="help-text">
-        左クリック: 開く ｜ 右クリック: マーキング(1-9) ｜ ホイール: 数値変更 ｜ 長押し: 解除
+        左クリック: 開く ｜ 右クリック: マーキング(1-9) ｜ 長押し: 解除
       </div>
       
       <div className="monster-guide">
-        <div className="monster-guide-title">👹 魔物図鑑</div>
+        <div className="monster-guide-title">🐲 魔物図鑑</div>
         <div className="monster-list">
           {Object.entries(MONSTER_ICONS).slice(0, modeConfig?.maxLevel || 5).map(([lv, icon]) => (
             <div key={lv} className="monster-entry">
