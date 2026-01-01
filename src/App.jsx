@@ -5,20 +5,82 @@ import './App.css';
 
 // 難易度設定（本家準拠）
 const DIFFICULTY = {
-  easy: { name: 'EASY', maxLevel: 3, hp: 10, icon: '🌱' },
-  normal: { name: 'NORMAL', maxLevel: 5, hp: 10, icon: '⚔️' },
-  hard: { name: 'HARD', maxLevel: 7, hp: 10, icon: '🔥' },
-  huge: { name: 'HUGE', maxLevel: 9, hp: 20, icon: '💀' }
+  easy: { 
+    name: 'EASY', 
+    maxLevel: 5, 
+    hp: 10, 
+    icon: '🌱',
+    availableSizes: ['xs'],
+    monsterDistribution: 'decreasing' // 高Lvほど少ない
+  },
+  normal: { 
+    name: 'NORMAL', 
+    maxLevel: 5, 
+    hp: 10, 
+    icon: '⚔️',
+    availableSizes: ['sm', 'md', 'lg'],
+    monsterDistribution: 'decreasing'
+  },
+  extreme: { 
+    name: 'EXTREME', 
+    maxLevel: 5, 
+    hp: 10, 
+    icon: '🔥',
+    availableSizes: ['sm', 'md', 'lg'],
+    monsterDistribution: 'equal' // 全Lv均等
+  },
+  huge: { 
+    name: 'HUGE', 
+    maxLevel: 9, 
+    hp: 30, 
+    icon: '🐉',
+    availableSizes: ['md', 'lg'],
+    monsterDistribution: 'decreasing'
+  },
+  hugeExtreme: { 
+    name: 'HUGE×EX', 
+    maxLevel: 9, 
+    hp: 10, 
+    icon: '☠️',
+    availableSizes: ['md', 'lg'],
+    monsterDistribution: 'equal'
+  }
 };
 
-// マップサイズ
+// マップサイズ（本家準拠）
 const BOARD_SIZE = {
-  xs: { name: 'ちいさめ', rows: 9, cols: 9, players: '1-2人' },
-  sm: { name: 'ふつう', rows: 12, cols: 12, players: '2-3人' },
-  md: { name: 'おおきめ', rows: 16, cols: 16, players: '3-5人' },
-  lg: { name: 'でかい', rows: 18, cols: 24, players: '4-6人' },
-  xl: { name: 'ばかでか', rows: 20, cols: 30, players: '6-8人' },
-  hell: { name: 'じごく', rows: 30, cols: 40, players: '8人+' }
+  xs: { name: 'ちいさめ', rows: 16, cols: 16, players: '1-2人' },
+  sm: { name: 'ふつう', rows: 16, cols: 30, players: '2-3人' },
+  md: { name: 'おおきめ', rows: 25, cols: 50, players: '3-5人' },
+  lg: { name: 'めちゃでか', rows: 50, cols: 50, players: '6-8人', hpMultiplier: 3, monsterMultiplier: 2 }
+};
+
+// 敵の数（本家準拠）ベースはふつうサイズ
+const MONSTER_COUNTS = {
+  easy: { // 16x16
+    1: 10, 2: 8, 3: 6, 4: 4, 5: 2
+  },
+  normal: { // 30x16ベース
+    1: 33, 2: 27, 3: 20, 4: 13, 5: 6
+  },
+  extreme: { // 30x16ベース、均等
+    1: 25, 2: 25, 3: 25, 4: 25, 5: 25
+  },
+  huge: { // 50x25ベース
+    1: 50, 2: 46, 3: 39, 4: 36, 5: 29, 6: 24, 7: 18, 8: 13, 9: 1
+  },
+  hugeExtreme: { // 50x25ベース、均等
+    1: 36, 2: 36, 3: 36, 4: 36, 5: 36, 6: 36, 7: 36, 8: 36, 9: 36
+  }
+};
+
+// 経験値テーブル（累計必要EX、本家推測）
+const EXP_TABLE = {
+  easy: [0, 7, 20, 50, 82, 999], // LV1→2, 2→3, ...
+  normal: [0, 10, 50, 167, 271, 999],
+  extreme: [0, 10, 50, 167, 271, 999],
+  huge: [0, 10, 90, 250, 500, 850, 1300, 1850, 2500, 9999],
+  hugeExtreme: [0, 3, 10, 150, 400, 750, 1200, 1750, 2400, 9999]
 };
 
 // 魔物アイコン（Lv1〜9）
@@ -52,9 +114,14 @@ const PLAYER_COLORS = [
   '#8B5CF6', '#EC4899', '#06B6D4', '#F97316',
 ];
 
-// 経験値テーブル（倍々）
-const getExpForLevel = (monsterLevel) => Math.pow(2, monsterLevel - 1);
-const getExpToNextLevel = (playerLevel) => Math.pow(2, playerLevel - 1);
+// 経験値計算（敵LV = 獲得EX）
+const getExpForLevel = (monsterLevel) => monsterLevel;
+
+// 次のレベルまでの必要経験値（累計）
+const getExpToNextLevel = (playerLevel, difficulty) => {
+  const table = EXP_TABLE[difficulty] || EXP_TABLE.normal;
+  return table[playerLevel] || 9999;
+};
 
 // 効果音：ダメージ
 const playDamageSound = () => {
@@ -164,28 +231,19 @@ const playGameOverSound = () => {
   });
 };
 
-// ボード生成
+// ボード生成（本家準拠）
 function createBoard(boardSize, difficulty, safeRow = -1, safeCol = -1) {
-  const { rows, cols } = BOARD_SIZE[boardSize];
+  const { rows, cols, monsterMultiplier } = BOARD_SIZE[boardSize];
   const { maxLevel } = DIFFICULTY[difficulty];
+  const baseCounts = MONSTER_COUNTS[difficulty];
   
-  // 魔物の数と配分を計算（マップの約15-20%が魔物）
-  const totalCells = rows * cols;
-  const monsterDensity = 0.18;
-  const totalMonsters = Math.floor(totalCells * monsterDensity);
+  // サイズに応じた敵数調整
+  const multiplier = monsterMultiplier || 1;
   
-  // レベルごとの魔物数を決定（低レベルほど多い）
+  // 敵の数を決定
   const monsterCounts = {};
-  let remaining = totalMonsters;
-  for (let lv = maxLevel; lv >= 1; lv--) {
-    if (lv === 1) {
-      monsterCounts[lv] = remaining;
-    } else {
-      // 高レベルほど少なく
-      const count = Math.floor(remaining / (lv + 1));
-      monsterCounts[lv] = Math.max(1, count);
-      remaining -= monsterCounts[lv];
-    }
+  for (let lv = 1; lv <= maxLevel; lv++) {
+    monsterCounts[lv] = Math.floor((baseCounts[lv] || 0) * multiplier);
   }
   
   const newBoard = Array(rows).fill(null).map((_, r) =>
@@ -193,7 +251,7 @@ function createBoard(boardSize, difficulty, safeRow = -1, safeCol = -1) {
       isMonster: false,
       monsterLevel: 0,
       isRevealed: false,
-      mark: 0, // 0: なし, 1-9: マーキング数字
+      mark: 0,
       neighborSum: 0,
       revealedBy: null
     }))
@@ -202,7 +260,10 @@ function createBoard(boardSize, difficulty, safeRow = -1, safeCol = -1) {
   // 魔物配置
   for (let lv = 1; lv <= maxLevel; lv++) {
     let placed = 0;
-    while (placed < monsterCounts[lv]) {
+    let attempts = 0;
+    const maxAttempts = rows * cols * 10;
+    
+    while (placed < monsterCounts[lv] && attempts < maxAttempts) {
       const r = Math.floor(Math.random() * rows);
       const c = Math.floor(Math.random() * cols);
       const isSafeZone = Math.abs(r - safeRow) <= 1 && Math.abs(c - safeCol) <= 1;
@@ -212,6 +273,7 @@ function createBoard(boardSize, difficulty, safeRow = -1, safeCol = -1) {
         newBoard[r][c].monsterLevel = lv;
         placed++;
       }
+      attempts++;
     }
   }
 
@@ -233,6 +295,13 @@ function createBoard(boardSize, difficulty, safeRow = -1, safeCol = -1) {
   }
 
   return newBoard;
+}
+
+// HP計算
+function getInitialHp(difficulty, boardSize) {
+  const baseHp = DIFFICULTY[difficulty].hp;
+  const multiplier = BOARD_SIZE[boardSize].hpMultiplier || 1;
+  return baseHp * multiplier;
 }
 
 function generateRoomId() {
@@ -319,7 +388,6 @@ export default function App() {
   const [maxHp, setMaxHp] = useState(10);
   const [level, setLevel] = useState(1);
   const [exp, setExp] = useState(0);
-  const [expToNext, setExpToNext] = useState(1);
   const [time, setTime] = useState(0);
   const [timerRunning, setTimerRunning] = useState(false);
   
@@ -339,6 +407,10 @@ export default function App() {
 
   const sizeConfig = BOARD_SIZE[boardSize];
   const diffConfig = DIFFICULTY[difficulty];
+  
+  // 次のレベルまでの必要経験値
+  const expToNext = getExpToNextLevel(level, difficulty);
+  const expNeeded = expToNext - exp;
 
   // タイマー
   useEffect(() => {
@@ -394,7 +466,6 @@ export default function App() {
         if (data.maxHp !== undefined) setMaxHp(data.maxHp);
         if (data.level !== undefined) setLevel(data.level);
         if (data.exp !== undefined) setExp(data.exp);
-        if (data.expToNext !== undefined) setExpToNext(data.expToNext);
         if (data.time !== undefined) setTime(data.time);
         if (data.timerRunning !== undefined) setTimerRunning(data.timerRunning);
       }
@@ -402,6 +473,14 @@ export default function App() {
 
     return () => unsubscribe();
   }, [roomId]);
+
+  // 難易度変更時にサイズも調整
+  useEffect(() => {
+    const availableSizes = DIFFICULTY[difficulty]?.availableSizes || ['sm'];
+    if (!availableSizes.includes(boardSize)) {
+      setBoardSize(availableSizes[0]);
+    }
+  }, [difficulty]);
 
   const getPlayerColor = (existingPlayers) => {
     const usedColors = Object.values(existingPlayers || {}).map(p => p.color);
@@ -416,7 +495,9 @@ export default function App() {
 
     const newRoomId = generateRoomId();
     const roomRef = ref(database, `rooms/${newRoomId}`);
-    const initialHp = DIFFICULTY.normal.hp;
+    const initialDiff = 'normal';
+    const initialSize = 'sm';
+    const initialHp = getInitialHp(initialDiff, initialSize);
     
     await set(roomRef, {
       players: {
@@ -424,14 +505,13 @@ export default function App() {
       },
       board: null,
       gameState: 'waiting',
-      difficulty: 'normal',
-      boardSize: 'sm',
+      difficulty: initialDiff,
+      boardSize: initialSize,
       firstClick: true,
       hp: initialHp,
       maxHp: initialHp,
       level: 1,
       exp: 0,
-      expToNext: 1,
       time: 0,
       timerRunning: false,
       createdAt: Date.now()
@@ -473,7 +553,7 @@ export default function App() {
 
   const startGame = async () => {
     const newBoard = createBoard(boardSize, difficulty, -1, -1);
-    const initialHp = DIFFICULTY[difficulty].hp;
+    const initialHp = getInitialHp(difficulty, boardSize);
     
     await update(ref(database, `rooms/${roomId}`), {
       board: newBoard,
@@ -483,7 +563,6 @@ export default function App() {
       maxHp: initialHp,
       level: 1,
       exp: 0,
-      expToNext: 1,
       time: 0,
       timerRunning: true
     });
@@ -493,13 +572,12 @@ export default function App() {
     if (row < 0 || row >= rows || col < 0 || col >= cols) return;
     const cell = board[row][col];
     if (cell.isRevealed || cell.mark > 0) return;
-    if (cell.isMonster) return; // 魔物は連鎖で開かない
+    if (cell.isMonster) return;
 
     cell.isRevealed = true;
     cell.revealedBy = pName;
     updates[`${row}_${col}`] = cell;
 
-    // 数字が0なら連鎖
     if (cell.neighborSum === 0) {
       for (let dr = -1; dr <= 1; dr++) {
         for (let dc = -1; dc <= 1; dc++) {
@@ -512,7 +590,6 @@ export default function App() {
   const checkWin = (board) => {
     for (const row of board) {
       for (const cell of row) {
-        // 魔物が残っていたら未クリア
         if (cell.isMonster && !cell.isRevealed) return false;
       }
     }
@@ -531,7 +608,6 @@ export default function App() {
         let currentBoard = currentData.board;
         const { rows, cols } = BOARD_SIZE[currentData.boardSize];
         
-        // 最初のクリックで安全地帯を確保
         if (currentData.firstClick) {
           currentBoard = createBoard(currentData.boardSize, currentData.difficulty, row, col);
           currentData.firstClick = false;
@@ -541,9 +617,8 @@ export default function App() {
         const cell = currentBoard[row][col];
         
         if (cell.isRevealed) return currentData;
-        if (cell.mark > 0) return currentData; // マーキングされてたら開かない
+        if (cell.mark > 0) return currentData;
 
-        // 魔物マスをクリック
         if (cell.isMonster) {
           const monsterLv = cell.monsterLevel;
           const playerLv = currentData.level;
@@ -552,12 +627,10 @@ export default function App() {
           cell.revealedBy = playerName;
           
           if (monsterLv > playerLv) {
-            // ダメージを受ける
             const damage = monsterLv - playerLv;
             currentData.hp = Math.max(0, currentData.hp - damage);
             
             if (currentData.hp <= 0) {
-              // ゲームオーバー：全魔物を表示
               currentBoard.forEach(r => r.forEach(c => {
                 if (c.isMonster) c.isRevealed = true;
               }));
@@ -566,20 +639,18 @@ export default function App() {
             }
           }
           
-          // 経験値獲得（ダメージを受けても獲得）
+          // 経験値獲得（敵LV = 獲得EX）
           const gainedExp = getExpForLevel(monsterLv);
           currentData.exp += gainedExp;
           
-          // レベルアップ判定
-          while (currentData.exp >= currentData.expToNext) {
-            currentData.exp -= currentData.expToNext;
+          // レベルアップ判定（累計経験値方式）
+          const nextLevelExp = getExpToNextLevel(currentData.level, currentData.difficulty);
+          while (currentData.exp >= nextLevelExp && currentData.level < 9) {
             currentData.level += 1;
-            currentData.expToNext = getExpToNextLevel(currentData.level);
           }
           
           currentData.board = currentBoard;
           
-          // クリア判定
           if (currentData.gameState === 'playing' && checkWin(currentBoard)) {
             currentData.gameState = 'won';
             currentData.timerRunning = false;
@@ -588,7 +659,6 @@ export default function App() {
           return currentData;
         }
 
-        // 通常のセルを開く
         const updates = {};
         revealCellRecursive(currentBoard, row, col, rows, cols, playerName, updates);
         currentData.board = currentBoard;
@@ -596,14 +666,12 @@ export default function App() {
         return currentData;
       });
 
-      // 効果音処理
       if (result.committed && result.snapshot.val()) {
         const data = result.snapshot.val();
         const cell = data.board?.[row]?.[col];
         
         if (cell?.isMonster && cell?.isRevealed) {
           if (cell.monsterLevel > data.level) {
-            // ダメージエフェクト
             if (boardRef.current) {
               const cellEl = boardRef.current.querySelector(`[data-pos="${row}-${col}"]`);
               if (cellEl) {
@@ -628,7 +696,6 @@ export default function App() {
     }
   };
 
-  // 右クリック：マーキング
   const handleRightClick = async (e, row, col) => {
     e.preventDefault();
     if (gameState !== 'playing' || !board) return;
@@ -639,13 +706,11 @@ export default function App() {
     const cellRef = ref(database, `rooms/${roomId}/board/${row}/${col}`);
     await runTransaction(cellRef, (currentCell) => {
       if (!currentCell || currentCell.isRevealed) return currentCell;
-      // マークを1増やす（9の次は0に戻る）
       currentCell.mark = (currentCell.mark + 1) % 10;
       return currentCell;
     });
   };
 
-  // ホイール：マーキング数値変更
   const handleWheel = async (e, row, col) => {
     if (gameState !== 'playing' || !board) return;
 
@@ -670,14 +735,12 @@ export default function App() {
   const handleRightMouseDown = async (e, row, col) => {
     if (e.button !== 2) return;
     
-    // 既存のタイマーをクリア
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current);
     }
     
     setRightClickStart({ row, col });
     
-    // 500ms後に長押し判定→即座に解除
     longPressTimerRef.current = setTimeout(async () => {
       const cellRef = ref(database, `rooms/${roomId}/board/${row}/${col}`);
       await runTransaction(cellRef, (currentCell) => {
@@ -690,7 +753,6 @@ export default function App() {
   };
 
   const handleRightMouseUp = (e, row, col) => {
-    // タイマーをクリア（長押し前にマウスを離した場合）
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
@@ -700,16 +762,29 @@ export default function App() {
 
   const changeDifficulty = async (newDiff) => {
     if (!isHost || gameState === 'playing') return;
+    
+    const availableSizes = DIFFICULTY[newDiff].availableSizes;
+    const newSize = availableSizes[0];
+    const newHp = getInitialHp(newDiff, newSize);
+    
     await update(ref(database, `rooms/${roomId}`), {
       difficulty: newDiff,
-      hp: DIFFICULTY[newDiff].hp,
-      maxHp: DIFFICULTY[newDiff].hp
+      boardSize: newSize,
+      hp: newHp,
+      maxHp: newHp
     });
   };
 
   const changeBoardSize = async (newSize) => {
     if (!isHost || gameState === 'playing') return;
-    await set(ref(database, `rooms/${roomId}/boardSize`), newSize);
+    
+    const newHp = getInitialHp(difficulty, newSize);
+    
+    await update(ref(database, `rooms/${roomId}`), {
+      boardSize: newSize,
+      hp: newHp,
+      maxHp: newHp
+    });
   };
 
   const resetGame = async () => {
@@ -718,7 +793,7 @@ export default function App() {
   };
 
   const doReset = async () => {
-    const initialHp = DIFFICULTY[difficulty].hp;
+    const initialHp = getInitialHp(difficulty, boardSize);
     await update(ref(database, `rooms/${roomId}`), {
       board: null,
       gameState: 'waiting',
@@ -727,7 +802,6 @@ export default function App() {
       maxHp: initialHp,
       level: 1,
       exp: 0,
-      expToNext: 1,
       time: 0,
       timerRunning: false
     });
@@ -752,7 +826,6 @@ export default function App() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  // セルの見た目
   const getCellClass = (cell) => {
     let cls = 'cell';
     if (!cell.isRevealed) {
@@ -775,12 +848,12 @@ export default function App() {
     return cell.neighborSum > 0 ? cell.neighborSum : '';
   };
 
-  // 残り魔物数
   const remainingMonsters = board 
     ? board.flat().filter(c => c.isMonster && !c.isRevealed).length 
     : 0;
 
-  // ロビー画面
+  const availableSizes = DIFFICULTY[difficulty]?.availableSizes || ['sm'];
+
   if (screen === 'lobby') {
     return (
       <div className="lobby">
@@ -819,13 +892,8 @@ export default function App() {
 
   return (
     <div className="game-container">
-      {/* レベルアップエフェクト */}
       {showLevelUp && <LevelUpEffect onComplete={() => setShowLevelUp(false)} />}
-
-      {/* クリア時の紙吹雪エフェクト */}
       {showConfetti && <ConfettiEffect />}
-
-      {/* コピー通知 */}
       {showCopyToast && <div className="copy-toast">コピーしました！</div>}
 
       <div className="game-header">
@@ -881,17 +949,24 @@ export default function App() {
               <div className="setting-section">
                 <label className="setting-label">マップサイズ</label>
                 <div className="size-select">
-                  {Object.entries(BOARD_SIZE).map(([key, val]) => (
+                  {Object.entries(BOARD_SIZE)
+                    .filter(([key]) => availableSizes.includes(key))
+                    .map(([key, val]) => (
                     <button
                       key={key}
                       onClick={() => changeBoardSize(key)}
                       className={`btn-size ${boardSize === key ? 'active' : ''}`}
                     >
                       {val.name}
-                      <span className="size-info">{val.rows}×{val.cols} ({val.players})</span>
+                      <span className="size-info">{val.rows}×{val.cols}</span>
                     </button>
                   ))}
                 </div>
+              </div>
+
+              <div className="game-info-preview">
+                HP: {getInitialHp(difficulty, boardSize)} ｜ 
+                最大Lv: {DIFFICULTY[difficulty]?.maxLevel}
               </div>
 
               <button onClick={startGame} className="btn-start">
@@ -905,7 +980,8 @@ export default function App() {
               <p className="waiting-text">ホストがゲームを開始するのを待っています...</p>
               <p className="settings-preview">
                 難易度: {DIFFICULTY[difficulty]?.icon} {DIFFICULTY[difficulty]?.name} ｜
-                サイズ: {BOARD_SIZE[boardSize]?.name}
+                サイズ: {BOARD_SIZE[boardSize]?.name} ｜
+                HP: {getInitialHp(difficulty, boardSize)}
               </p>
             </div>
           )}
@@ -914,11 +990,10 @@ export default function App() {
 
       {board && gameState !== 'waiting' && (
         <>
-          {/* ステータスバー */}
           <div className="status-bar">
             <div className="status-item hp">
               <span className="status-label">HP</span>
-              <span className="status-value">{hp}/{maxHp}</span>
+              <span className="status-value">{hp}</span>
               <div className="hp-bar">
                 <div className="hp-fill" style={{ width: `${(hp / maxHp) * 100}%` }}></div>
               </div>
@@ -933,7 +1008,7 @@ export default function App() {
             </div>
             <div className="status-item">
               <span className="status-label">NE</span>
-              <span className="status-value">{expToNext - exp}</span>
+              <span className="status-value">{expNeeded > 0 ? expNeeded : 0}</span>
             </div>
             <div className="status-item">
               <span className="status-label">T</span>
