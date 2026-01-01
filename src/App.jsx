@@ -331,6 +331,7 @@ export default function App() {
   
   // マーキング用
   const [rightClickStart, setRightClickStart] = useState(null);
+  const longPressTimerRef = useRef(null);
   
   const boardRef = useRef(null);
   const prevGameStateRef = useRef(gameState);
@@ -665,24 +666,34 @@ export default function App() {
     });
   };
 
-  // 右クリック長押し：マーキング解除
-  const handleRightMouseDown = (e, row, col) => {
+  // 右クリック長押し：マーキング解除（長押し判定の瞬間に発動）
+  const handleRightMouseDown = async (e, row, col) => {
     if (e.button !== 2) return;
-    setRightClickStart({ row, col, time: Date.now() });
-  };
-
-  const handleRightMouseUp = async (e, row, col) => {
-    if (!rightClickStart) return;
     
-    const holdTime = Date.now() - rightClickStart.time;
-    if (holdTime > 500 && rightClickStart.row === row && rightClickStart.col === col) {
-      // 長押し：マーキング解除
+    // 既存のタイマーをクリア
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+    }
+    
+    setRightClickStart({ row, col });
+    
+    // 500ms後に長押し判定→即座に解除
+    longPressTimerRef.current = setTimeout(async () => {
       const cellRef = ref(database, `rooms/${roomId}/board/${row}/${col}`);
       await runTransaction(cellRef, (currentCell) => {
         if (!currentCell || currentCell.isRevealed) return currentCell;
         currentCell.mark = 0;
         return currentCell;
       });
+      setRightClickStart(null);
+    }, 500);
+  };
+
+  const handleRightMouseUp = (e, row, col) => {
+    // タイマーをクリア（長押し前にマウスを離した場合）
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
     }
     setRightClickStart(null);
   };
