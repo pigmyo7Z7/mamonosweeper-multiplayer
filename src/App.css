@@ -1,0 +1,697 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  min-height: 100vh;
+  color: white;
+}
+
+/* Lobby */
+.lobby {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.lobby h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 0 20px rgba(255, 100, 100, 0.5);
+}
+
+.subtitle {
+  font-size: 1.2rem;
+  color: #94a3b8;
+  margin-bottom: 2rem;
+}
+
+.lobby-form {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2rem;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  max-width: 320px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.lobby-form input {
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  color: #1e293b;
+}
+
+.lobby-form input::placeholder {
+  color: #64748b;
+}
+
+.btn-primary {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #e94560, #c23a51);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4);
+}
+
+.btn-secondary {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+}
+
+.divider {
+  text-align: center;
+  color: #64748b;
+  position: relative;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 35%;
+  height: 1px;
+  background: #475569;
+}
+
+.divider::before {
+  left: 0;
+}
+
+.divider::after {
+  right: 0;
+}
+
+/* Game Container */
+.game-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  min-height: 100vh;
+}
+
+.game-header {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.game-header h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 0 20px rgba(255, 100, 100, 0.5);
+}
+
+.room-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  color: #94a3b8;
+}
+
+.room-id {
+  font-family: monospace;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+  padding: 4px 12px;
+  border-radius: 4px;
+}
+
+.btn-small {
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px solid #475569;
+  border-radius: 4px;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-small:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* コピー通知 */
+.copy-toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #22c55e;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  z-index: 100;
+  animation: toastFade 1.5s ease-in-out;
+}
+
+@keyframes toastFade {
+  0% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+  15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+}
+
+/* Players */
+.players-list {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.player-tag {
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* Waiting Room */
+.waiting-room {
+  text-align: center;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  margin: 1rem 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.difficulty-select {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin: 1rem 0;
+  flex-wrap: wrap;
+}
+
+.btn-diff {
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-diff:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.btn-diff.active {
+  background: #e94560;
+  border-color: #ff6b8a;
+}
+
+.btn-start {
+  padding: 12px 32px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: all 0.2s;
+}
+
+.btn-start:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+}
+
+.waiting-text {
+  color: #94a3b8;
+  margin-top: 1rem;
+}
+
+/* 設定セクション */
+.setting-section {
+  margin: 1rem 0;
+}
+
+.setting-label {
+  display: block;
+  color: #94a3b8;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+/* サイズ選択 */
+.size-select {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.btn-size {
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 80px;
+}
+
+.btn-size:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.btn-size.active {
+  background: #8b5cf6;
+  border-color: #a78bfa;
+}
+
+.size-info {
+  font-size: 0.7rem;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+
+/* 待機中の設定プレビュー */
+.waiting-info {
+  text-align: center;
+}
+
+.settings-preview {
+  color: #64748b;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+/* ステータスバー */
+.status-bar {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 1rem;
+  padding: 12px 20px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-item.hp {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.status-label {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.status-value {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: white;
+}
+
+.level-value {
+  color: #fbbf24;
+  font-size: 1.3rem;
+  text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+}
+
+.hp-bar {
+  width: 80px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.hp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e, #4ade80);
+  transition: width 0.3s ease;
+  border-radius: 4px;
+}
+
+.btn-reset-small {
+  padding: 4px 10px;
+  background: #6366f1;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-left: 8px;
+}
+
+.btn-reset-small:hover {
+  background: #4f46e5;
+}
+
+/* Game Result */
+.game-result {
+  font-size: 1.5rem;
+  font-weight: bold;
+  padding: 12px 24px;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  animation: resultPop 0.5s ease;
+}
+
+@keyframes resultPop {
+  0% { transform: scale(0.8); opacity: 0; }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.game-result.won {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+  border: 2px solid #22c55e;
+}
+
+.game-result.lost {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 2px solid #ef4444;
+}
+
+/* Board */
+.board-container {
+  position: relative;
+  background: #2d3748;
+  padding: 8px;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.board {
+  display: grid;
+  gap: 1px;
+  background: #4a5568;
+}
+
+.cell {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.1s;
+}
+
+.cell-hidden {
+  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+  border: 1px solid #5a6a7a;
+}
+
+.cell-hidden:hover {
+  background: linear-gradient(135deg, #5a6a7a 0%, #3d4a5a 100%);
+}
+
+.cell-hidden:active {
+  background: #2d3748;
+}
+
+.cell-marked {
+  background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+  border: 1px solid #8b5cf6;
+  color: white;
+  font-size: 16px;
+}
+
+.cell-revealed {
+  background: #e5e7eb;
+  color: #1f2937;
+}
+
+/* 数字の色（周囲魔物レベル合計） */
+.cell-revealed {
+  color: #374151;
+}
+
+/* 魔物セル */
+.cell-monster {
+  font-size: 18px;
+}
+
+.cell-monster-1 { background: linear-gradient(135deg, #60a5fa, #3b82f6); }
+.cell-monster-2 { background: linear-gradient(135deg, #4ade80, #22c55e); }
+.cell-monster-3 { background: linear-gradient(135deg, #facc15, #eab308); }
+.cell-monster-4 { background: linear-gradient(135deg, #fb923c, #f97316); }
+.cell-monster-5 { background: linear-gradient(135deg, #f87171, #ef4444); }
+.cell-monster-6 { background: linear-gradient(135deg, #c084fc, #a855f7); }
+.cell-monster-7 { background: linear-gradient(135deg, #818cf8, #6366f1); }
+.cell-monster-8 { background: linear-gradient(135deg, #f472b6, #ec4899); }
+.cell-monster-9 { background: linear-gradient(135deg, #1f2937, #111827); }
+
+/* ダメージエフェクト */
+.damage-effect {
+  position: absolute;
+  pointer-events: none;
+  z-index: 100;
+  transform: translateX(-50%);
+}
+
+.damage-text {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #ef4444;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  animation: damageFloat 0.8s ease-out forwards;
+}
+
+@keyframes damageFloat {
+  0% {
+    transform: translateY(0) scale(0.5);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-40px) scale(1);
+    opacity: 0;
+  }
+}
+
+/* レベルアップエフェクト */
+.levelup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 200;
+}
+
+.levelup-text {
+  font-size: 4rem;
+  font-weight: bold;
+  color: #fbbf24;
+  text-shadow: 
+    0 0 20px rgba(251, 191, 36, 0.8),
+    0 0 40px rgba(251, 191, 36, 0.6),
+    0 0 60px rgba(251, 191, 36, 0.4);
+  animation: levelupPop 1.5s ease-out forwards;
+}
+
+@keyframes levelupPop {
+  0% {
+    transform: scale(0.3) rotate(-10deg);
+    opacity: 0;
+  }
+  30% {
+    transform: scale(1.2) rotate(5deg);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1) rotate(0deg);
+  }
+  100% {
+    transform: scale(1.5) translateY(-30px);
+    opacity: 0;
+  }
+}
+
+/* Game Controls */
+.game-controls {
+  display: flex;
+  gap: 12px;
+  margin-top: 1rem;
+}
+
+.btn-reset {
+  padding: 10px 20px;
+  background: #22c55e;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-reset:hover {
+  background: #16a34a;
+}
+
+.btn-leave {
+  padding: 10px 20px;
+  background: #64748b;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-leave:hover {
+  background: #475569;
+}
+
+/* Help Text */
+.help-text {
+  margin-top: 1.5rem;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+/* 魔物図鑑 */
+.monster-guide {
+  margin-top: 1rem;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  max-width: 400px;
+}
+
+.monster-guide-title {
+  font-weight: bold;
+  color: #e94560;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.monster-list {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.monster-entry {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+}
+
+.monster-icon {
+  font-size: 1.2rem;
+}
+
+.monster-lv {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+/* 紙吹雪エフェクト */
+.confetti-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.confetti {
+  position: absolute;
+  top: -20px;
+  border-radius: 2px;
+  animation: confettiFall linear forwards;
+}
+
+@keyframes confettiFall {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
