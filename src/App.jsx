@@ -657,7 +657,7 @@ export default function App() {
     
     setRightClickStart({ row, col });
     
-    // 長押しタイマー開始（200msで解除）
+    // 長押しタイマー開始（300msで解除）
     longPressTimerRef.current = setTimeout(async () => {
       const cellRef = ref(database, `rooms/${roomId}/board/${row}/${col}`);
       await runTransaction(cellRef, (currentCell) => {
@@ -666,7 +666,7 @@ export default function App() {
         return currentCell;
       });
       setRightClickStart(null);
-    }, 200);
+    }, 300);
     
     // 押した瞬間にマーキング（数値を1増やす、maxLevelまで）
     const maxMark = modeConfig.maxLevel;
