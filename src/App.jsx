@@ -349,6 +349,7 @@ export default function App() {
   
   // マーキング用
   const [rightClickStart, setRightClickStart] = useState(null);
+  const [hoveredCell, setHoveredCell] = useState(null);
   const longPressTimerRef = useRef(null);
   
   const boardRef = useRef(null);
@@ -654,14 +655,10 @@ export default function App() {
       clearTimeout(longPressTimerRef.current);
     }
     
-    // 長押し判定されたかどうかのフラグ
-    const longPressTriggeredRef = { current: false };
-    
     setRightClickStart({ row, col });
     
     // 長押しタイマー開始（500msで解除）
     longPressTimerRef.current = setTimeout(async () => {
-      longPressTriggeredRef.current = true;
       const cellRef = ref(database, `rooms/${roomId}/board/${row}/${col}`);
       await runTransaction(cellRef, (currentCell) => {
         if (!currentCell || currentCell.isRevealed) return currentCell;
@@ -671,11 +668,14 @@ export default function App() {
       setRightClickStart(null);
     }, 500);
     
-    // 押した瞬間にマーキング（数値を1増やす）
+    // 押した瞬間にマーキング（数値を1増やす、maxLevelまで）
+    const maxMark = modeConfig.maxLevel;
     const cellRef = ref(database, `rooms/${roomId}/board/${row}/${col}`);
     await runTransaction(cellRef, (currentCell) => {
       if (!currentCell || currentCell.isRevealed) return currentCell;
-      currentCell.mark = (currentCell.mark + 1) % 10;
+      let newMark = currentCell.mark + 1;
+      if (newMark > maxMark) newMark = 0;
+      currentCell.mark = newMark;
       return currentCell;
     });
   };
@@ -687,6 +687,47 @@ export default function App() {
     }
     setRightClickStart(null);
   };
+
+  // マウスがセルに入ったとき
+  const handleMouseEnter = (row, col) => {
+    setHoveredCell({ row, col });
+  };
+
+  // マウスがセルから出たとき
+  const handleMouseLeave = () => {
+    setHoveredCell(null);
+  };
+
+  // キーボードで数字入力
+  useEffect(() => {
+    const handleKeyDown = async (e) => {
+      if (gameState !== 'playing' || !board || !hoveredCell) return;
+      
+      const key = e.key;
+      const num = parseInt(key, 10);
+      
+      // 数字キーかどうか確認
+      if (isNaN(num)) return;
+      
+      // 0またはmaxLevel以下のみ受け付ける
+      const maxMark = modeConfig.maxLevel;
+      if (num !== 0 && (num < 1 || num > maxMark)) return;
+      
+      const { row, col } = hoveredCell;
+      const cell = board[row]?.[col];
+      if (!cell || cell.isRevealed) return;
+      
+      const cellRef = ref(database, `rooms/${roomId}/board/${row}/${col}`);
+      await runTransaction(cellRef, (currentCell) => {
+        if (!currentCell || currentCell.isRevealed) return currentCell;
+        currentCell.mark = num;
+        return currentCell;
+      });
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [gameState, board, hoveredCell, roomId, modeConfig]);
 
   const changeMode = async (newMode) => {
     if (!isHost || gameState === 'playing') return;
@@ -779,6 +820,8 @@ export default function App() {
             onChange={(e) => setPlayerName(e.target.value)}
             maxLength={10}
           />
+
+          <div className="divider">ルームに参加する場合</div>
 
           <input
             type="text"
@@ -936,6 +979,8 @@ export default function App() {
                     onContextMenu={handleContextMenu}
                     onMouseDown={(e) => handleRightMouseDown(e, r, c)}
                     onMouseUp={(e) => handleRightMouseUp(e, r, c)}
+                    onMouseEnter={() => handleMouseEnter(r, c)}
+                    onMouseLeave={handleMouseLeave}
                   >
                     {getCellContent(cell)}
                   </div>
@@ -967,7 +1012,7 @@ export default function App() {
       )}
 
       <div className="help-text">
-        左クリック: 開く ｜ 右クリック: マーキング(1-9) ｜ 長押し: 解除
+        左クリック: 開く ｜ 右クリック: マーキング ｜ 長押し: 解除 ｜ 数字キー: 直接入力
       </div>
       
       <div className="monster-guide">
