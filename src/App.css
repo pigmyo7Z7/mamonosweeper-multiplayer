@@ -415,10 +415,13 @@ body {
   gap: 6px;
 }
 
-.status-item.hp {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
+.status-item .hp-bar {
+  width: 60px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-left: 4px;
 }
 
 .status-label {
@@ -526,11 +529,13 @@ body {
   cursor: pointer;
   user-select: none;
   transition: all 0.1s;
+  box-sizing: border-box;
+  border: 2px solid transparent;
 }
 
 .cell-hidden {
   background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
-  border: 1px solid #5a6a7a;
+  border: 2px solid #5a6a7a;
 }
 
 .cell-hidden:hover {
@@ -542,36 +547,22 @@ body {
 }
 
 .cell-marked {
-  background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
-  border: 1px solid #8b5cf6;
+  border: 1px solid rgba(255, 255, 255, 0.5);
   color: white;
   font-size: 16px;
+  font-weight: bold;
 }
 
 .cell-revealed {
   background: #e5e7eb;
   color: #1f2937;
+  border: 2px solid transparent;
 }
 
 /* 数字の色（周囲魔物レベル合計） */
 .cell-revealed {
   color: #374151;
 }
-
-/* 魔物セル */
-.cell-monster {
-  font-size: 18px;
-}
-
-.cell-monster-1 { background: linear-gradient(135deg, #60a5fa, #3b82f6); }
-.cell-monster-2 { background: linear-gradient(135deg, #4ade80, #22c55e); }
-.cell-monster-3 { background: linear-gradient(135deg, #facc15, #eab308); }
-.cell-monster-4 { background: linear-gradient(135deg, #fb923c, #f97316); }
-.cell-monster-5 { background: linear-gradient(135deg, #f87171, #ef4444); }
-.cell-monster-6 { background: linear-gradient(135deg, #c084fc, #a855f7); }
-.cell-monster-7 { background: linear-gradient(135deg, #818cf8, #6366f1); }
-.cell-monster-8 { background: linear-gradient(135deg, #f472b6, #ec4899); }
-.cell-monster-9 { background: linear-gradient(135deg, #1f2937, #111827); }
 
 /* ダメージエフェクト */
 .damage-effect {
@@ -689,26 +680,25 @@ body {
   font-size: 0.9rem;
 }
 
-/* 魔物図鑑 */
+/* 魔物図鑑（コンパクト版） */
 .monster-guide {
-  margin-top: 1rem;
-  padding: 12px 16px;
+  margin: 8px 0;
+  padding: 8px 12px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  max-width: 400px;
 }
 
 .monster-guide-title {
   font-weight: bold;
   color: #e94560;
-  margin-bottom: 8px;
-  font-size: 0.9rem;
+  margin-bottom: 4px;
+  font-size: 0.8rem;
 }
 
 .monster-list {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   flex-wrap: wrap;
   justify-content: center;
 }
@@ -716,19 +706,65 @@ body {
 .monster-entry {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
+  gap: 2px;
+  padding: 2px 6px;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
+  border-radius: 4px;
 }
 
-.monster-icon {
-  font-size: 1.2rem;
+.monster-icon-small {
+  font-size: 1rem;
 }
 
 .monster-lv {
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   color: #94a3b8;
+}
+
+/* 魔物セル */
+.cell-monster-alive {
+  background: linear-gradient(135deg, #dc2626, #991b1b);
+  position: relative;
+}
+
+.cell-monster-dead {
+  background: #4a5568;
+  position: relative;
+}
+
+.monster-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.monster-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.monster-icon.dead {
+  filter: grayscale(100%) brightness(0.6);
+}
+
+.monster-hp-bar {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  right: 2px;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.monster-hp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e, #4ade80);
+  transition: width 0.2s ease;
 }
 
 /* 紙吹雪エフェクト */

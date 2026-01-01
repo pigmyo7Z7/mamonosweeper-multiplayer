@@ -3,7 +3,7 @@ import { database } from './firebase';
 import { ref, set, onValue, get, update, runTransaction } from 'firebase/database';
 import './App.css';
 
-// モード設定（本家準拠：モード選択でマップサイズ・敵数・HP全て決まる）
+// モード設定（本家準拠）
 const GAME_MODES = {
   easy: { 
     name: 'EASY', 
@@ -198,7 +198,7 @@ const playGameOverSound = () => {
   });
 };
 
-// ボード生成（本家準拠）
+// ボード生成
 function createBoard(mode, safeRow = -1, safeCol = -1) {
   const modeConfig = GAME_MODES[mode];
   const { rows, cols, maxLevel, monsters } = modeConfig;
@@ -207,8 +207,13 @@ function createBoard(mode, safeRow = -1, safeCol = -1) {
     Array(cols).fill(null).map((_, c) => ({
       isMonster: false,
       monsterLevel: 0,
+      monsterHp: 0, // 魔物のHP（=魔物LV）
+      monsterMaxHp: 0,
       isRevealed: false,
+      isDead: false, // 魔物が倒されたか
+      showNumber: false, // 倒した魔物で数値表示するか
       mark: 0,
+      markBy: null, // マーキングした人
       neighborSum: 0,
       revealedBy: null
     }))
@@ -229,6 +234,8 @@ function createBoard(mode, safeRow = -1, safeCol = -1) {
       if (!newBoard[r][c].isMonster && !isSafeZone) {
         newBoard[r][c].isMonster = true;
         newBoard[r][c].monsterLevel = lv;
+        newBoard[r][c].monsterHp = lv; // HP = LV
+        newBoard[r][c].monsterMaxHp = lv;
         placed++;
       }
       attempts++;
@@ -361,6 +368,13 @@ export default function App() {
   // 次のレベルまでの必要経験値
   const expToNext = getExpToNextLevel(level, mode);
   const expNeeded = expToNext - exp;
+
+  // プレイヤー名から色を取得
+  const getColorForPlayer = (pName) => {
+    const playersList = Object.values(players);
+    const player = playersList.find(p => p.name === pName);
+    return player?.color || '#666';
+  };
 
   // タイマー
   useEffect(() => {
@@ -529,7 +543,7 @@ export default function App() {
   const checkWin = (board) => {
     for (const row of board) {
       for (const cell of row) {
-        if (cell.isMonster && !cell.isRevealed) return false;
+        if (cell.isMonster && !cell.isDead) return false;
       }
     }
     return true;
@@ -560,33 +574,44 @@ export default function App() {
         if (cell.mark > 0) return currentData;
 
         if (cell.isMonster) {
-          const monsterLv = cell.monsterLevel;
-          const playerLv = currentData.level;
-          
           cell.isRevealed = true;
           cell.revealedBy = playerName;
           
-          if (monsterLv > playerLv) {
-            const damage = monsterLv - playerLv;
+          const playerLv = currentData.level;
+          const monsterLv = cell.monsterLevel;
+          
+          // 自分が先制攻撃（自分のLV分のダメージ）
+          cell.monsterHp -= playerLv;
+          
+          if (cell.monsterHp <= 0) {
+            // 魔物を倒した
+            cell.monsterHp = 0;
+            cell.isDead = true;
+            
+            // 経験値獲得
+            const gainedExp = getExpForLevel(monsterLv);
+            currentData.exp += gainedExp;
+            
+            // レベルアップ判定
+            const nextLevelExp = getExpToNextLevel(currentData.level, currentMode);
+            while (currentData.exp >= nextLevelExp && currentData.level < 9) {
+              currentData.level += 1;
+            }
+          } else {
+            // 魔物が反撃（魔物LV分のダメージ）
+            const damage = monsterLv;
             currentData.hp = Math.max(0, currentData.hp - damage);
             
             if (currentData.hp <= 0) {
+              // ゲームオーバー
               currentBoard.forEach(r => r.forEach(c => {
-                if (c.isMonster) c.isRevealed = true;
+                if (c.isMonster) {
+                  c.isRevealed = true;
+                }
               }));
               currentData.gameState = 'lost';
               currentData.timerRunning = false;
             }
-          }
-          
-          // 経験値獲得（敵LV = 獲得EX）
-          const gainedExp = getExpForLevel(monsterLv);
-          currentData.exp += gainedExp;
-          
-          // レベルアップ判定（累計経験値方式）
-          const nextLevelExp = getExpToNextLevel(currentData.level, currentMode);
-          while (currentData.exp >= nextLevelExp && currentData.level < 9) {
-            currentData.level += 1;
           }
           
           currentData.board = currentBoard;
@@ -611,7 +636,10 @@ export default function App() {
         const cell = data.board?.[row]?.[col];
         
         if (cell?.isMonster && cell?.isRevealed) {
-          if (cell.monsterLevel > data.level) {
+          if (cell.isDead) {
+            playDefeatSound();
+          } else {
+            // 魔物からダメージを受けた
             if (boardRef.current) {
               const cellEl = boardRef.current.querySelector(`[data-pos="${row}-${col}"]`);
               if (cellEl) {
@@ -621,13 +649,11 @@ export default function App() {
                   id: Date.now(),
                   x: rect.left - boardRect.left + rect.width / 2,
                   y: rect.top - boardRect.top,
-                  damage: cell.monsterLevel - data.level
+                  damage: cell.monsterLevel
                 }]);
               }
             }
             playDamageSound();
-          } else {
-            playDefeatSound();
           }
         }
       }
@@ -641,7 +667,7 @@ export default function App() {
     e.preventDefault();
   };
 
-  // 右クリック：押した瞬間にマーキング、長押しで解除
+  // 右クリック処理
   const handleRightMouseDown = async (e, row, col) => {
     if (e.button !== 2) return;
     e.preventDefault();
@@ -649,6 +675,18 @@ export default function App() {
     if (gameState !== 'playing' || !board) return;
     
     const cell = board[row][col];
+    
+    // 倒した魔物の場合はトグル
+    if (cell.isMonster && cell.isDead) {
+      const cellRef = ref(database, `rooms/${roomId}/board/${row}/${col}`);
+      await runTransaction(cellRef, (currentCell) => {
+        if (!currentCell) return currentCell;
+        currentCell.showNumber = !currentCell.showNumber;
+        return currentCell;
+      });
+      return;
+    }
+    
     if (cell.isRevealed) return;
     
     if (longPressTimerRef.current) {
@@ -663,12 +701,13 @@ export default function App() {
       await runTransaction(cellRef, (currentCell) => {
         if (!currentCell || currentCell.isRevealed) return currentCell;
         currentCell.mark = 0;
+        currentCell.markBy = null;
         return currentCell;
       });
       setRightClickStart(null);
     }, 300);
     
-    // 押した瞬間にマーキング（数値を1増やす、maxLevelまで）
+    // 押した瞬間にマーキング
     const maxMark = modeConfig.maxLevel;
     const cellRef = ref(database, `rooms/${roomId}/board/${row}/${col}`);
     await runTransaction(cellRef, (currentCell) => {
@@ -676,6 +715,7 @@ export default function App() {
       let newMark = currentCell.mark + 1;
       if (newMark > maxMark) newMark = 0;
       currentCell.mark = newMark;
+      currentCell.markBy = newMark > 0 ? playerName : null;
       return currentCell;
     });
   };
@@ -706,10 +746,8 @@ export default function App() {
       const key = e.key;
       const num = parseInt(key, 10);
       
-      // 数字キーかどうか確認
       if (isNaN(num)) return;
       
-      // 0またはmaxLevel以下のみ受け付ける
       const maxMark = modeConfig.maxLevel;
       if (num !== 0 && (num < 1 || num > maxMark)) return;
       
@@ -721,13 +759,14 @@ export default function App() {
       await runTransaction(cellRef, (currentCell) => {
         if (!currentCell || currentCell.isRevealed) return currentCell;
         currentCell.mark = num;
+        currentCell.markBy = num > 0 ? playerName : null;
         return currentCell;
       });
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [gameState, board, hoveredCell, roomId, modeConfig]);
+  }, [gameState, board, hoveredCell, roomId, modeConfig, playerName]);
 
   const changeMode = async (newMode) => {
     if (!isHost || gameState === 'playing') return;
@@ -785,11 +824,25 @@ export default function App() {
     if (!cell.isRevealed) {
       cls += cell.mark > 0 ? ' cell-marked' : ' cell-hidden';
     } else if (cell.isMonster) {
-      cls += ` cell-monster cell-monster-${cell.monsterLevel}`;
+      cls += cell.isDead ? ' cell-monster-dead' : ' cell-monster-alive';
     } else {
       cls += ' cell-revealed';
     }
     return cls;
+  };
+
+  const getCellStyle = (cell) => {
+    const style = {};
+    if (cell.isRevealed && cell.revealedBy) {
+      const color = getColorForPlayer(cell.revealedBy);
+      style.borderColor = color;
+      style.boxShadow = `inset 0 0 0 2px ${color}40`;
+    }
+    if (!cell.isRevealed && cell.mark > 0 && cell.markBy) {
+      const color = getColorForPlayer(cell.markBy);
+      style.backgroundColor = color;
+    }
+    return style;
   };
 
   const getCellContent = (cell) => {
@@ -797,13 +850,39 @@ export default function App() {
       return cell.mark > 0 ? cell.mark : '';
     }
     if (cell.isMonster) {
-      return MONSTER_ICONS[cell.monsterLevel];
+      if (cell.showNumber) {
+        return cell.neighborSum > 0 ? cell.neighborSum : '';
+      }
+      return (
+        <div className="monster-cell">
+          <span className={`monster-icon ${cell.isDead ? 'dead' : ''}`}>
+            {MONSTER_ICONS[cell.monsterLevel]}
+          </span>
+          {!cell.isDead && (
+            <div className="monster-hp-bar">
+              <div 
+                className="monster-hp-fill" 
+                style={{ width: `${(cell.monsterHp / cell.monsterMaxHp) * 100}%` }}
+              />
+            </div>
+          )}
+        </div>
+      );
     }
     return cell.neighborSum > 0 ? cell.neighborSum : '';
   };
 
+  // 魔物のツールチップ
+  const getTooltip = (cell) => {
+    if (cell.isMonster && cell.isRevealed && !cell.isDead) {
+      return `Lv${cell.monsterLevel} HP:${cell.monsterHp}/${cell.monsterMaxHp}`;
+    }
+    return '';
+  };
+
+  // 残り魔物数
   const remainingMonsters = board 
-    ? board.flat().filter(c => c.isMonster && !c.isRevealed).length 
+    ? board.flat().filter(c => c.isMonster && !c.isDead).length 
     : 0;
 
   if (screen === 'lobby') {
@@ -925,9 +1004,9 @@ export default function App() {
       {board && gameState !== 'waiting' && (
         <>
           <div className="status-bar">
-            <div className="status-item hp">
+            <div className="status-item">
               <span className="status-label">HP</span>
-              <span className="status-value">{hp}</span>
+              <span className="status-value">{hp}/{maxHp}</span>
               <div className="hp-bar">
                 <div className="hp-fill" style={{ width: `${(hp / maxHp) * 100}%` }}></div>
               </div>
@@ -955,6 +1034,18 @@ export default function App() {
             <button onClick={resetGame} className="btn-reset-small">🔄</button>
           </div>
 
+          <div className="monster-guide">
+            <div className="monster-guide-title">🐲 魔物図鑑</div>
+            <div className="monster-list">
+              {Object.entries(MONSTER_ICONS).slice(0, modeConfig?.maxLevel || 5).map(([lv, icon]) => (
+                <div key={lv} className="monster-entry">
+                  <span className="monster-icon-small">{icon}</span>
+                  <span className="monster-lv">Lv{lv}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {(gameState === 'won' || gameState === 'lost') && (
             <div className={`game-result ${gameState}`}>
               {gameState === 'won' ? '🎉 全魔物討伐！クリア！' : '💀 ゲームオーバー...'}
@@ -975,12 +1066,14 @@ export default function App() {
                     key={`${r}-${c}`}
                     data-pos={`${r}-${c}`}
                     className={getCellClass(cell)}
+                    style={getCellStyle(cell)}
                     onClick={() => handleClick(r, c)}
                     onContextMenu={handleContextMenu}
                     onMouseDown={(e) => handleRightMouseDown(e, r, c)}
                     onMouseUp={(e) => handleRightMouseUp(e, r, c)}
                     onMouseEnter={() => handleMouseEnter(r, c)}
                     onMouseLeave={handleMouseLeave}
+                    title={getTooltip(cell)}
                   >
                     {getCellContent(cell)}
                   </div>
@@ -1013,18 +1106,6 @@ export default function App() {
 
       <div className="help-text">
         左クリック: 開く ｜ 右クリック: マーキング ｜ 長押し: 解除 ｜ 数字キー: 直接入力
-      </div>
-      
-      <div className="monster-guide">
-        <div className="monster-guide-title">🐲 魔物図鑑</div>
-        <div className="monster-list">
-          {Object.entries(MONSTER_ICONS).slice(0, modeConfig?.maxLevel || 5).map(([lv, icon]) => (
-            <div key={lv} className="monster-entry">
-              <span className="monster-icon">{icon}</span>
-              <span className="monster-lv">Lv{lv}</span>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );
