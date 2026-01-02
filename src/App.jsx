@@ -81,8 +81,8 @@ const PLAYER_COLORS = [
   '#8B5CF6', '#EC4899', '#06B6D4', '#F97316',
 ];
 
-// 経験値計算（敵LV = 獲得EX）
-const getExpForLevel = (monsterLevel) => monsterLevel;
+// 経験値計算（敵LV → 獲得EX: 2^(LV-1)）
+const getExpForLevel = (monsterLevel) => Math.pow(2, monsterLevel - 1);
 
 // 次のレベルまでの必要経験値（累計）
 const getExpToNextLevel = (playerLevel, mode) => {
