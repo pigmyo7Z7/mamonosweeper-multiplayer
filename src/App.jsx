@@ -361,6 +361,7 @@ export default function App() {
   // マーキング用
   const [rightClickStart, setRightClickStart] = useState(null);
   const [hoveredCell, setHoveredCell] = useState(null);
+  const [justRevealedCell, setJustRevealedCell] = useState(null); // 開いた直後のマス
   const [tooltip, setTooltip] = useState({ show: false, text: '', x: 0, y: 0 });
   const [ripples, setRipples] = useState([]); // 波紋エフェクト
   const lastDamageEventIdRef = useRef(null); // 最後に処理したダメージイベント
@@ -691,6 +692,9 @@ export default function App() {
         const data = result.snapshot.val();
         const cell = data.board?.[row]?.[col];
         
+        // 開いた直後のマスを記録（ホバー判定を一時的に無効化）
+        setJustRevealedCell({ row, col });
+        
         if (cell?.isMonster && cell?.isRevealed) {
           const eventId = Date.now();
           const damageEventRef = ref(database, `rooms/${roomId}/damageEvent`);
@@ -807,6 +811,12 @@ export default function App() {
 
   // マウスがセルから出たとき
   const handleMouseLeave = () => {
+    // 開いた直後のマスから離れたらクリア
+    if (justRevealedCell && hoveredCell && 
+        justRevealedCell.row === hoveredCell.row && 
+        justRevealedCell.col === hoveredCell.col) {
+      setJustRevealedCell(null);
+    }
     setHoveredCell(null);
     setTooltip({ show: false, text: '', x: 0, y: 0 });
   };
@@ -936,6 +946,7 @@ export default function App() {
     });
     setDamageEffects([]);
     setTime(0);
+    setJustRevealedCell(null);
   };
 
   const leaveRoom = async () => {
@@ -1000,7 +1011,14 @@ export default function App() {
       }
       
       // 倒した魔物にホバー中ならLV数値のみ表示（丸付き数字）
-      const isHovered = hoveredCell && hoveredCell.row === row && hoveredCell.col === col;
+      // ただし、開いた直後のマスは除外
+      const isJustRevealed = justRevealedCell && 
+                             justRevealedCell.row === row && 
+                             justRevealedCell.col === col;
+      const isHovered = hoveredCell && 
+                        hoveredCell.row === row && 
+                        hoveredCell.col === col &&
+                        !isJustRevealed;
       if (cell.isDead && isHovered) {
         const circledNumbers = ['⓪', '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨'];
         return (
