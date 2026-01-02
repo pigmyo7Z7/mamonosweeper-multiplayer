@@ -821,7 +821,7 @@ body {
 }
 
 .monster-icon.dead {
-  filter: grayscale(100%) brightness(0.6);
+  /* グレーアウトしない */
 }
 
 .monster-hp-bar {

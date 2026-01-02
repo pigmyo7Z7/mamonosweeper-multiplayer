@@ -361,6 +361,7 @@ export default function App() {
   const [hoveredCell, setHoveredCell] = useState(null);
   const [tooltip, setTooltip] = useState({ show: false, text: '', x: 0, y: 0 });
   const [ripples, setRipples] = useState([]); // 波紋エフェクト
+  const lastDamageEventIdRef = useRef(null); // 最後に処理したダメージイベント
   const longPressTimerRef = useRef(null);
   
   const boardRef = useRef(null);
@@ -445,6 +446,35 @@ export default function App() {
           setRipples(activeRipples);
         } else {
           setRipples([]);
+        }
+        
+        // ダメージイベントを同期（効果音再生）
+        if (data.damageEvent && data.damageEvent.id !== lastDamageEventIdRef.current) {
+          const event = data.damageEvent;
+          const now = Date.now();
+          // 3秒以内のイベントのみ処理
+          if (now - event.timestamp < 3000) {
+            lastDamageEventIdRef.current = event.id;
+            if (event.type === 'damage') {
+              playDamageSound();
+              // ダメージエフェクト表示
+              if (boardRef.current && event.row !== undefined && event.col !== undefined) {
+                const cellEl = boardRef.current.querySelector(`[data-pos="${event.row}-${event.col}"]`);
+                if (cellEl) {
+                  const rect = cellEl.getBoundingClientRect();
+                  const boardRect = boardRef.current.getBoundingClientRect();
+                  setDamageEffects(prev => [...prev, {
+                    id: event.id,
+                    x: rect.left - boardRect.left + rect.width / 2,
+                    y: rect.top - boardRect.top,
+                    damage: event.damage
+                  }]);
+                }
+              }
+            } else if (event.type === 'defeat') {
+              playDefeatSound();
+            }
+          }
         }
       }
     });
@@ -585,9 +615,6 @@ export default function App() {
 
         const cell = currentBoard[row][col];
         
-        // 未開封セルでマーキングされてたら開かない
-        if (!cell.isRevealed && cell.mark > 0) return currentData;
-        
         // 既に開いているが、HPが残っている魔物には再攻撃可能
         if (cell.isRevealed && !(cell.isMonster && !cell.isDead && cell.monsterHp > 0)) {
           return currentData;
@@ -656,24 +683,28 @@ export default function App() {
         const cell = data.board?.[row]?.[col];
         
         if (cell?.isMonster && cell?.isRevealed) {
+          const eventId = Date.now();
+          const damageEventRef = ref(database, `rooms/${roomId}/damageEvent`);
+          
           if (cell.isDead) {
-            playDefeatSound();
+            // 撃破イベントをFirebaseに保存
+            await set(damageEventRef, {
+              id: eventId,
+              type: 'defeat',
+              row,
+              col,
+              timestamp: eventId
+            });
           } else {
-            // 魔物からダメージを受けた
-            if (boardRef.current) {
-              const cellEl = boardRef.current.querySelector(`[data-pos="${row}-${col}"]`);
-              if (cellEl) {
-                const rect = cellEl.getBoundingClientRect();
-                const boardRect = boardRef.current.getBoundingClientRect();
-                setDamageEffects(prev => [...prev, {
-                  id: Date.now(),
-                  x: rect.left - boardRect.left + rect.width / 2,
-                  y: rect.top - boardRect.top,
-                  damage: cell.monsterLevel
-                }]);
-              }
-            }
-            playDamageSound();
+            // ダメージイベントをFirebaseに保存
+            await set(damageEventRef, {
+              id: eventId,
+              type: 'damage',
+              row,
+              col,
+              damage: cell.monsterLevel,
+              timestamp: eventId
+            });
           }
         }
       }
