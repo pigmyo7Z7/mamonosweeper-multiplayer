@@ -781,22 +781,40 @@ export default function App() {
       return currentCell;
     });
     
-    // 波紋エフェクトを追加
+    // 波紋エフェクトを追加（2回）
     if (boardRef.current) {
       const cellEl = boardRef.current.querySelector(`[data-pos="${row}-${col}"]`);
       if (cellEl) {
         const rect = cellEl.getBoundingClientRect();
         const boardRect = boardRef.current.getBoundingClientRect();
-        const rippleId = Date.now();
+        const color = getColorForPlayer(playerName);
+        const baseX = rect.left - boardRect.left + rect.width / 2;
+        const baseY = rect.top - boardRect.top + rect.height / 2;
+        
+        // 1回目の波紋
+        const rippleId1 = Date.now();
         setRipples(prev => [...prev, {
-          id: rippleId,
-          x: rect.left - boardRect.left + rect.width / 2,
-          y: rect.top - boardRect.top + rect.height / 2,
-          color: getColorForPlayer(playerName)
+          id: rippleId1,
+          x: baseX,
+          y: baseY,
+          color: color
         }]);
-        // 1秒後に削除
         setTimeout(() => {
-          setRipples(prev => prev.filter(r => r.id !== rippleId));
+          setRipples(prev => prev.filter(r => r.id !== rippleId1));
+        }, 1000);
+        
+        // 2回目の波紋（1回目が終わった後）
+        setTimeout(() => {
+          const rippleId2 = Date.now() + 1;
+          setRipples(prev => [...prev, {
+            id: rippleId2,
+            x: baseX,
+            y: baseY,
+            color: color
+          }]);
+          setTimeout(() => {
+            setRipples(prev => prev.filter(r => r.id !== rippleId2));
+          }, 1000);
         }, 1000);
       }
     }
