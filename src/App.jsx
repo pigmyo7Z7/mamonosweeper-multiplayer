@@ -993,9 +993,10 @@ export default function App() {
     }
     if (cell.isMonster) {
       if (cell.showNumber) {
+        // 倒した魔物の数字表示（0も表示）
         return (
           <span className="dead-monster-number">
-            {cell.neighborSum > 0 ? cell.neighborSum : ''}
+            {cell.neighborSum}
           </span>
         );
       }
