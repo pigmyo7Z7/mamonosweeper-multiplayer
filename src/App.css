@@ -526,7 +526,7 @@ body {
   justify-content: center;
   font-size: 14px;
   font-weight: bold;
-  cursor: pointer;
+  cursor: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgBAMAAACBVGfHAAAAIGNIUk0AAHomAACAhAAA+gAAAIDoAAB1MAAA6mAAADqYAAAXcJy6UTwAAAAbUExURQAAAAAAAPLy8sLCwv/Ga9ySAD25AABzAP////o9Us4AAAABdFJOUwBA5thmAAAAAWJLR0QIht6VegAAAAd0SU1FB+oBAgghEQReF9YAAACPSURBVCjPxZHBDcMgDEXxBnbiwjlsUHWCSmEADgyQi+85sX6iNoJ+MkB9Qk9P/h9wIuxgprggkBhRmUdlfg4Kvf6ukAyKJkalg0t5FIYt9BYM0oxBS9twKQrgVNaMdbX4DcCazX4VLcFbV0iShN2sFdEkjqo35QbOU9i3lvy5BdXe9fsSkgL+ouaKgFjcbQ4FthlgGk7czAAAAABJRU5ErkJggg==") 0 0, pointer;
   user-select: none;
   transition: all 0.1s;
   box-sizing: border-box;
