@@ -244,12 +244,13 @@ function createBoard(mode, safeRow = -1, safeCol = -1) {
     }
   }
 
-  // 周囲の魔物レベル合計を計算
+  // 周囲の魔物レベル合計を計算（自分自身は除外）
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       let sum = 0;
       for (let dr = -1; dr <= 1; dr++) {
         for (let dc = -1; dc <= 1; dc++) {
+          if (dr === 0 && dc === 0) continue; // 自分自身をスキップ
           const nr = r + dr;
           const nc = c + dc;
           if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && newBoard[nr][nc].isMonster) {
