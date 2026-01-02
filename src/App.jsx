@@ -570,10 +570,15 @@ export default function App() {
 
         const cell = currentBoard[row][col];
         
-        if (cell.isRevealed) return currentData;
-        if (cell.mark > 0) return currentData;
+        // 未開封セルでマーキングされてたら開かない
+        if (!cell.isRevealed && cell.mark > 0) return currentData;
+        
+        // 既に開いているが、HPが残っている魔物には再攻撃可能
+        if (cell.isRevealed && !(cell.isMonster && !cell.isDead && cell.monsterHp > 0)) {
+          return currentData;
+        }
 
-        if (cell.isMonster) {
+        if (cell.isMonster && !cell.isDead) {
           cell.isRevealed = true;
           cell.revealedBy = playerName;
           
@@ -592,9 +597,9 @@ export default function App() {
             const gainedExp = getExpForLevel(monsterLv);
             currentData.exp += gainedExp;
             
-            // レベルアップ判定
+            // レベルアップ判定（1回だけ）
             const nextLevelExp = getExpToNextLevel(currentData.level, currentMode);
-            while (currentData.exp >= nextLevelExp && currentData.level < 9) {
+            if (currentData.exp >= nextLevelExp && currentData.level < 9) {
               currentData.level += 1;
             }
           } else {
