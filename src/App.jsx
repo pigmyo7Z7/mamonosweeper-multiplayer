@@ -786,14 +786,25 @@ export default function App() {
     
     // ツールチップ表示
     const cell = board?.[row]?.[col];
-    if (cell?.isMonster && cell?.isRevealed && !cell?.isDead) {
+    if (cell?.isMonster && cell?.isRevealed) {
       const rect = e.target.getBoundingClientRect();
-      setTooltip({
-        show: true,
-        text: `Lv${cell.monsterLevel} HP:${cell.monsterHp}/${cell.monsterMaxHp}`,
-        x: rect.left + rect.width / 2,
-        y: rect.top - 10
-      });
+      if (cell.isDead) {
+        // 倒した魔物はLVのみ表示
+        setTooltip({
+          show: true,
+          text: `Lv${cell.monsterLevel}`,
+          x: rect.left + rect.width / 2,
+          y: rect.top - 10
+        });
+      } else {
+        // 生きている魔物はLVとHP表示
+        setTooltip({
+          show: true,
+          text: `Lv${cell.monsterLevel} HP:${cell.monsterHp}/${cell.monsterMaxHp}`,
+          x: rect.left + rect.width / 2,
+          y: rect.top - 10
+        });
+      }
     }
   };
 
