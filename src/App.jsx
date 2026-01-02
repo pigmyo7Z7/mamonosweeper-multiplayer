@@ -784,27 +784,16 @@ export default function App() {
   const handleMouseEnter = (e, row, col) => {
     setHoveredCell({ row, col });
     
-    // ツールチップ表示
+    // ツールチップ表示（生きている魔物のみ）
     const cell = board?.[row]?.[col];
-    if (cell?.isMonster && cell?.isRevealed) {
+    if (cell?.isMonster && cell?.isRevealed && !cell?.isDead) {
       const rect = e.target.getBoundingClientRect();
-      if (cell.isDead) {
-        // 倒した魔物はLVのみ表示
-        setTooltip({
-          show: true,
-          text: `Lv${cell.monsterLevel}`,
-          x: rect.left + rect.width / 2,
-          y: rect.top - 10
-        });
-      } else {
-        // 生きている魔物はLVとHP表示
-        setTooltip({
-          show: true,
-          text: `Lv${cell.monsterLevel} HP:${cell.monsterHp}/${cell.monsterMaxHp}`,
-          x: rect.left + rect.width / 2,
-          y: rect.top - 10
-        });
-      }
+      setTooltip({
+        show: true,
+        text: `Lv${cell.monsterLevel} HP:${cell.monsterHp}/${cell.monsterMaxHp}`,
+        x: rect.left + rect.width / 2,
+        y: rect.top - 10
+      });
     }
   };
 
@@ -987,7 +976,7 @@ export default function App() {
     return style;
   };
 
-  const getCellContent = (cell) => {
+  const getCellContent = (cell, row, col) => {
     if (!cell.isRevealed) {
       return cell.mark > 0 ? cell.mark : '';
     }
@@ -1000,6 +989,17 @@ export default function App() {
           </span>
         );
       }
+      
+      // 倒した魔物にホバー中ならLV表示
+      const isHovered = hoveredCell && hoveredCell.row === row && hoveredCell.col === col;
+      if (cell.isDead && isHovered) {
+        return (
+          <div className="monster-cell">
+            <span className="monster-lv-overlay">Lv{cell.monsterLevel}</span>
+          </div>
+        );
+      }
+      
       return (
         <div className="monster-cell">
           <span className={`monster-icon ${cell.isDead ? 'dead' : ''}`}>
@@ -1232,7 +1232,7 @@ export default function App() {
                     onMouseEnter={(e) => handleMouseEnter(e, r, c)}
                     onMouseLeave={handleMouseLeave}
                   >
-                    {getCellContent(cell)}
+                    {getCellContent(cell, r, c)}
                     {cell.pinned && <div className="pin-marker" style={{ borderColor: getColorForPlayer(cell.pinnedBy) }}>📍</div>}
                   </div>
                 ))
