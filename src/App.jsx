@@ -856,7 +856,11 @@ export default function App() {
     }
     if (cell.isMonster) {
       if (cell.showNumber) {
-        return cell.neighborSum > 0 ? cell.neighborSum : '';
+        return (
+          <span className="dead-monster-number">
+            {cell.neighborSum > 0 ? cell.neighborSum : ''}
+          </span>
+        );
       }
       return (
         <div className="monster-cell">

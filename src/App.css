@@ -728,7 +728,7 @@ body {
 }
 
 .cell-monster-dead {
-  background: #4a5568;
+  background: #e5e7eb;
   position: relative;
 }
 
@@ -765,6 +765,13 @@ body {
   height: 100%;
   background: linear-gradient(90deg, #22c55e, #4ade80);
   transition: width 0.2s ease;
+}
+
+/* 倒した魔物の数字表示 */
+.dead-monster-number {
+  color: #dc2626;
+  font-weight: bold;
+  font-size: 14px;
 }
 
 /* 紙吹雪エフェクト */
