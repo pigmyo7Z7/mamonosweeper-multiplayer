@@ -348,6 +348,7 @@ export default function App() {
   const [maxHp, setMaxHp] = useState(10);
   const [level, setLevel] = useState(1);
   const [exp, setExp] = useState(0);
+  const [startedAt, setStartedAt] = useState(null); // ゲーム開始時刻
   const [time, setTime] = useState(0);
   const [timerRunning, setTimerRunning] = useState(false);
   
@@ -382,16 +383,19 @@ export default function App() {
     return player?.color || '#666';
   };
 
-  // タイマー
+  // タイマー（startedAtベースで計算）
   useEffect(() => {
     let interval;
-    if (timerRunning && gameState === 'playing') {
+    if (timerRunning && gameState === 'playing' && startedAt) {
+      // 初期時間を設定
+      setTime(Math.floor((Date.now() - startedAt) / 1000));
+      
       interval = setInterval(() => {
-        setTime(t => t + 1);
+        setTime(Math.floor((Date.now() - startedAt) / 1000));
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [timerRunning, gameState]);
+  }, [timerRunning, gameState, startedAt]);
 
   // レベルアップ検知
   useEffect(() => {
@@ -435,7 +439,7 @@ export default function App() {
         if (data.maxHp !== undefined) setMaxHp(data.maxHp);
         if (data.level !== undefined) setLevel(data.level);
         if (data.exp !== undefined) setExp(data.exp);
-        if (data.time !== undefined) setTime(data.time);
+        if (data.startedAt !== undefined) setStartedAt(data.startedAt);
         if (data.timerRunning !== undefined) setTimerRunning(data.timerRunning);
         
         // 波紋エフェクトを同期
@@ -511,7 +515,7 @@ export default function App() {
       maxHp: initialHp,
       level: 1,
       exp: 0,
-      time: 0,
+      startedAt: null,
       timerRunning: false,
       createdAt: Date.now()
     });
@@ -562,7 +566,7 @@ export default function App() {
       maxHp: initialHp,
       level: 1,
       exp: 0,
-      time: 0,
+      startedAt: Date.now(),
       timerRunning: true
     });
   };
@@ -604,15 +608,19 @@ export default function App() {
       const result = await runTransaction(boardDbRef, (currentData) => {
         if (!currentData || currentData.gameState !== 'playing') return currentData;
         
-        let currentBoard = currentData.board;
+        // ボードのディープコピーを作成（同期問題対策）
+        let currentBoard = currentData.firstClick 
+          ? null 
+          : JSON.parse(JSON.stringify(currentData.board));
         const currentMode = currentData.mode;
         const { rows, cols } = GAME_MODES[currentMode];
         
         if (currentData.firstClick) {
           currentBoard = createBoard(currentMode, row, col);
           currentData.firstClick = false;
-          currentData.board = currentBoard;
         }
+        
+        currentData.board = currentBoard;
 
         const cell = currentBoard[row][col];
         
@@ -923,10 +931,11 @@ export default function App() {
       maxHp: initialHp,
       level: 1,
       exp: 0,
-      time: 0,
+      startedAt: null,
       timerRunning: false
     });
     setDamageEffects([]);
+    setTime(0);
   };
 
   const leaveRoom = async () => {
@@ -990,12 +999,13 @@ export default function App() {
         );
       }
       
-      // 倒した魔物にホバー中ならLV数値のみ表示
+      // 倒した魔物にホバー中ならLV数値のみ表示（丸付き数字）
       const isHovered = hoveredCell && hoveredCell.row === row && hoveredCell.col === col;
       if (cell.isDead && isHovered) {
+        const circledNumbers = ['⓪', '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨'];
         return (
           <div className="monster-cell">
-            <span className="monster-lv-overlay">{cell.monsterLevel}</span>
+            <span className="monster-lv-overlay">{circledNumbers[cell.monsterLevel] || cell.monsterLevel}</span>
           </div>
         );
       }
@@ -1154,15 +1164,15 @@ export default function App() {
               <span className="status-value level-value">{level}</span>
             </div>
             <div className="status-item">
-              <span className="status-label">EX</span>
+              <span className="status-label">EXP</span>
               <span className="status-value">{exp}</span>
             </div>
             <div className="status-item">
-              <span className="status-label">NE</span>
+              <span className="status-label">NEXT</span>
               <span className="status-value">{expNeeded > 0 ? expNeeded : 0}</span>
             </div>
             <div className="status-item">
-              <span className="status-label">T</span>
+              <span className="status-label">TIME</span>
               <span className="status-value">{formatTime(time)}</span>
             </div>
             <div className="status-item">
