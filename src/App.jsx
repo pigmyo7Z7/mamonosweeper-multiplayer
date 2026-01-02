@@ -357,6 +357,7 @@ export default function App() {
   // マーキング用
   const [rightClickStart, setRightClickStart] = useState(null);
   const [hoveredCell, setHoveredCell] = useState(null);
+  const [tooltip, setTooltip] = useState({ show: false, text: '', x: 0, y: 0 });
   const longPressTimerRef = useRef(null);
   
   const boardRef = useRef(null);
@@ -734,13 +735,26 @@ export default function App() {
   };
 
   // マウスがセルに入ったとき
-  const handleMouseEnter = (row, col) => {
+  const handleMouseEnter = (e, row, col) => {
     setHoveredCell({ row, col });
+    
+    // ツールチップ表示
+    const cell = board?.[row]?.[col];
+    if (cell?.isMonster && cell?.isRevealed && !cell?.isDead) {
+      const rect = e.target.getBoundingClientRect();
+      setTooltip({
+        show: true,
+        text: `Lv${cell.monsterLevel} HP:${cell.monsterHp}/${cell.monsterMaxHp}`,
+        x: rect.left + rect.width / 2,
+        y: rect.top - 10
+      });
+    }
   };
 
   // マウスがセルから出たとき
   const handleMouseLeave = () => {
     setHoveredCell(null);
+    setTooltip({ show: false, text: '', x: 0, y: 0 });
   };
 
   // キーボードで数字入力
@@ -894,6 +908,12 @@ export default function App() {
     ? board.flat().filter(c => c.isMonster && !c.isDead).length 
     : 0;
 
+  // 種類別の残り魔物数
+  const getRemainingByLevel = (lv) => {
+    if (!board) return 0;
+    return board.flat().filter(c => c.isMonster && c.monsterLevel === lv && !c.isDead).length;
+  };
+
   if (screen === 'lobby') {
     return (
       <div className="lobby">
@@ -1044,14 +1064,18 @@ export default function App() {
           </div>
 
           <div className="monster-guide">
-            <div className="monster-guide-title">🐲 魔物図鑑</div>
+            <div className="monster-guide-title">🐲 魔物図鑑（残り {remainingMonsters} 匹）</div>
             <div className="monster-list">
-              {Object.entries(MONSTER_ICONS).slice(0, modeConfig?.maxLevel || 5).map(([lv, icon]) => (
-                <div key={lv} className="monster-entry">
-                  <span className="monster-icon-small">{icon}</span>
-                  <span className="monster-lv">Lv{lv}</span>
-                </div>
-              ))}
+              {Object.entries(MONSTER_ICONS).slice(0, modeConfig?.maxLevel || 5).map(([lv, icon]) => {
+                const remaining = getRemainingByLevel(parseInt(lv));
+                return (
+                  <div key={lv} className={`monster-entry ${remaining === 0 ? 'cleared' : ''}`}>
+                    <span className="monster-icon-small">{icon}</span>
+                    <span className="monster-lv">Lv{lv}</span>
+                    <span className="monster-remaining">×{remaining}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -1062,6 +1086,19 @@ export default function App() {
           )}
 
           <div className="board-container" ref={boardRef}>
+            {tooltip.show && (
+              <div 
+                className="custom-tooltip"
+                style={{ 
+                  left: tooltip.x, 
+                  top: tooltip.y,
+                  position: 'fixed',
+                  transform: 'translate(-50%, -100%)'
+                }}
+              >
+                {tooltip.text}
+              </div>
+            )}
             <div 
               className="board"
               style={{ 
@@ -1080,9 +1117,8 @@ export default function App() {
                     onContextMenu={handleContextMenu}
                     onMouseDown={(e) => handleRightMouseDown(e, r, c)}
                     onMouseUp={(e) => handleRightMouseUp(e, r, c)}
-                    onMouseEnter={() => handleMouseEnter(r, c)}
+                    onMouseEnter={(e) => handleMouseEnter(e, r, c)}
                     onMouseLeave={handleMouseLeave}
-                    title={getTooltip(cell)}
                   >
                     {getCellContent(cell)}
                   </div>

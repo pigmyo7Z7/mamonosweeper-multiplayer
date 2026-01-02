@@ -683,7 +683,7 @@ body {
 /* 魔物図鑑（コンパクト版） */
 .monster-guide {
   margin: 8px 0;
-  padding: 8px 12px;
+  padding: 10px 14px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
@@ -692,13 +692,13 @@ body {
 .monster-guide-title {
   font-weight: bold;
   color: #e94560;
-  margin-bottom: 4px;
-  font-size: 0.8rem;
+  margin-bottom: 6px;
+  font-size: 0.95rem;
 }
 
 .monster-list {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
   justify-content: center;
 }
@@ -706,19 +706,45 @@ body {
 .monster-entry {
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 2px 6px;
+  gap: 4px;
+  padding: 4px 8px;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
+  border-radius: 6px;
+}
+
+.monster-entry.cleared {
+  opacity: 0.4;
 }
 
 .monster-icon-small {
-  font-size: 1rem;
+  font-size: 1.2rem;
 }
 
 .monster-lv {
-  font-size: 0.65rem;
-  color: #94a3b8;
+  font-size: 0.9rem;
+  color: #e2e8f0;
+  font-weight: bold;
+}
+
+.monster-remaining {
+  font-size: 0.85rem;
+  color: #fbbf24;
+  font-weight: bold;
+  margin-left: 2px;
+}
+
+/* カスタムツールチップ */
+.custom-tooltip {
+  background: rgba(0, 0, 0, 0.9);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  white-space: nowrap;
+  z-index: 1000;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 /* 魔物セル */
