@@ -1000,7 +1000,7 @@ export default function App() {
     const circledNumbers = ['⓪', '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨'];
     
     if (!cell.isRevealed) {
-      return cell.mark > 0 ? circledNumbers[cell.mark] || cell.mark : '';
+      return cell.mark > 0 ? <span className="mark-number">{circledNumbers[cell.mark] || cell.mark}</span> : '';
     }
     if (cell.isMonster) {
       if (cell.showNumber) {

@@ -831,6 +831,12 @@ body {
   color: #1e40af;
 }
 
+/* マーキングの丸付き数字 */
+.mark-number {
+  font-size: 18px;
+  font-weight: bold;
+}
+
 .monster-hp-bar {
   position: absolute;
   bottom: 2px;
