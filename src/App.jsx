@@ -990,12 +990,12 @@ export default function App() {
         );
       }
       
-      // 倒した魔物にホバー中ならLV表示
+      // 倒した魔物にホバー中ならLV数値のみ表示
       const isHovered = hoveredCell && hoveredCell.row === row && hoveredCell.col === col;
       if (cell.isDead && isHovered) {
         return (
           <div className="monster-cell">
-            <span className="monster-lv-overlay">Lv{cell.monsterLevel}</span>
+            <span className="monster-lv-overlay">{cell.monsterLevel}</span>
           </div>
         );
       }
