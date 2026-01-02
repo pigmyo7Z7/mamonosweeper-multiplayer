@@ -682,6 +682,8 @@ export default function App() {
         }
 
         const updates = {};
+        // クリックしたマスのマーキングを解除してから開く
+        currentBoard[row][col].mark = 0;
         revealCellRecursive(currentBoard, row, col, rows, cols, playerName, updates);
         currentData.board = currentBoard;
         
