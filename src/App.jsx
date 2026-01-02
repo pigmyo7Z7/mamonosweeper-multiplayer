@@ -767,6 +767,10 @@ export default function App() {
     
     if (gameState !== 'playing' || !board) return;
     
+    // 現在のピン状態を確認
+    const currentCell = board[row]?.[col];
+    const wasNotPinned = !currentCell?.pinned;
+    
     const cellRef = ref(database, `rooms/${roomId}/board/${row}/${col}`);
     await runTransaction(cellRef, (currentCell) => {
       if (!currentCell) return currentCell;
@@ -781,8 +785,8 @@ export default function App() {
       return currentCell;
     });
     
-    // 波紋エフェクトを追加（2回）
-    if (boardRef.current) {
+    // ピンを挿すときだけ波紋エフェクトを追加（2回）
+    if (wasNotPinned && boardRef.current) {
       const cellEl = boardRef.current.querySelector(`[data-pos="${row}-${col}"]`);
       if (cellEl) {
         const rect = cellEl.getBoundingClientRect();
