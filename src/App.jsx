@@ -47,7 +47,7 @@ const GAME_MODES = {
     maxLevel: 9, 
     hp: 30,
     monsters: { 1: 50, 2: 46, 3: 39, 4: 36, 5: 29, 6: 24, 7: 18, 8: 13, 9: 1 },
-    expTable: [0, 10, 90, 250, 500, 850, 1300, 1850, 2500, 9999]
+    expTable: [0, 10, 90, 202, 520, 950, 1700, 2850, 4634, 9999]
   },
   hugeExtreme: { 
     name: 'HUGE×EX', 
@@ -58,7 +58,7 @@ const GAME_MODES = {
     maxLevel: 9, 
     hp: 10,
     monsters: { 1: 36, 2: 36, 3: 36, 4: 36, 5: 36, 6: 36, 7: 36, 8: 36, 9: 36 },
-    expTable: [0, 3, 10, 150, 400, 750, 1200, 1750, 2400, 9999]
+    expTable: [0, 3, 10, 150, 400, 900, 2000, 4300, 9180, 99999]
   }
 };
 
@@ -655,8 +655,8 @@ export default function App() {
               currentData.level += 1;
             }
           } else {
-            // 魔物が反撃（魔物LV分のダメージ）
-            const damage = monsterLv;
+            // 魔物が反撃（LV9ドラゴンは攻撃力99、それ以外は魔物LV分のダメージ）
+            const damage = monsterLv === 9 ? 99 : monsterLv;
             currentData.hp = Math.max(0, currentData.hp - damage);
             
             if (currentData.hp <= 0) {
@@ -712,12 +712,13 @@ export default function App() {
             });
           } else {
             // ダメージイベントをFirebaseに保存
+            const damageAmount = cell.monsterLevel === 9 ? 99 : cell.monsterLevel;
             await set(damageEventRef, {
               id: eventId,
               type: 'damage',
               row,
               col,
-              damage: cell.monsterLevel,
+              damage: damageAmount,
               timestamp: eventId
             });
           }
