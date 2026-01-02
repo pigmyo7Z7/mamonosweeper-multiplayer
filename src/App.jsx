@@ -435,6 +435,17 @@ export default function App() {
         if (data.exp !== undefined) setExp(data.exp);
         if (data.time !== undefined) setTime(data.time);
         if (data.timerRunning !== undefined) setTimerRunning(data.timerRunning);
+        
+        // 波紋エフェクトを同期
+        if (data.ripples) {
+          const now = Date.now();
+          const activeRipples = Object.entries(data.ripples)
+            .filter(([_, r]) => now - r.timestamp < 3000) // 3秒以内のもの
+            .map(([id, r]) => ({ id, ...r }));
+          setRipples(activeRipples);
+        } else {
+          setRipples([]);
+        }
       }
     });
 
@@ -785,42 +796,41 @@ export default function App() {
       return currentCell;
     });
     
-    // ピンを挿すときだけ波紋エフェクトを追加（2回）
-    if (wasNotPinned && boardRef.current) {
-      const cellEl = boardRef.current.querySelector(`[data-pos="${row}-${col}"]`);
-      if (cellEl) {
-        const rect = cellEl.getBoundingClientRect();
-        const boardRect = boardRef.current.getBoundingClientRect();
-        const color = getColorForPlayer(playerName);
-        const baseX = rect.left - boardRect.left + rect.width / 2;
-        const baseY = rect.top - boardRect.top + rect.height / 2;
+    // ピンを挿すときだけ波紋エフェクトをFirebaseに保存（2回分）
+    if (wasNotPinned) {
+      const color = getColorForPlayer(playerName);
+      const now = Date.now();
+      
+      // 1回目の波紋
+      const ripple1Ref = ref(database, `rooms/${roomId}/ripples/${now}`);
+      await set(ripple1Ref, {
+        row,
+        col,
+        color,
+        timestamp: now
+      });
+      
+      // 3秒後に削除
+      setTimeout(async () => {
+        await set(ripple1Ref, null);
+      }, 3000);
+      
+      // 2回目の波紋（1秒後）
+      setTimeout(async () => {
+        const now2 = Date.now();
+        const ripple2Ref = ref(database, `rooms/${roomId}/ripples/${now2}`);
+        await set(ripple2Ref, {
+          row,
+          col,
+          color,
+          timestamp: now2
+        });
         
-        // 1回目の波紋
-        const rippleId1 = Date.now();
-        setRipples(prev => [...prev, {
-          id: rippleId1,
-          x: baseX,
-          y: baseY,
-          color: color
-        }]);
-        setTimeout(() => {
-          setRipples(prev => prev.filter(r => r.id !== rippleId1));
-        }, 1000);
-        
-        // 2回目の波紋（1回目が終わった後）
-        setTimeout(() => {
-          const rippleId2 = Date.now() + 1;
-          setRipples(prev => [...prev, {
-            id: rippleId2,
-            x: baseX,
-            y: baseY,
-            color: color
-          }]);
-          setTimeout(() => {
-            setRipples(prev => prev.filter(r => r.id !== rippleId2));
-          }, 1000);
-        }, 1000);
-      }
+        // 3秒後に削除
+        setTimeout(async () => {
+          await set(ripple2Ref, null);
+        }, 3000);
+      }, 1000);
     }
   };
 
@@ -1193,17 +1203,32 @@ export default function App() {
                 onComplete={() => removeDamageEffect(eff.id)}
               />
             ))}
-            {ripples.map(ripple => (
-              <div
-                key={ripple.id}
-                className="ripple-effect"
-                style={{
-                  left: ripple.x,
-                  top: ripple.y,
-                  borderColor: ripple.color
-                }}
-              />
-            ))}
+            {ripples.map(ripple => {
+              // row, colからセルの位置を計算
+              const cellEl = boardRef.current?.querySelector(`[data-pos="${ripple.row}-${ripple.col}"]`);
+              if (!cellEl || !boardRef.current) return null;
+              const rect = cellEl.getBoundingClientRect();
+              const boardRect = boardRef.current.getBoundingClientRect();
+              const x = rect.left - boardRect.left + rect.width / 2;
+              const y = rect.top - boardRect.top + rect.height / 2;
+              
+              // タイムスタンプから経過時間を計算し、アニメーション開始時間を調整
+              const elapsed = Date.now() - ripple.timestamp;
+              const animationDelay = -elapsed / 1000; // 経過分だけ遅らせる（マイナスで進める）
+              
+              return (
+                <div
+                  key={ripple.id}
+                  className="ripple-effect"
+                  style={{
+                    left: x,
+                    top: y,
+                    borderColor: ripple.color,
+                    animationDelay: `${animationDelay}s`
+                  }}
+                />
+              );
+            })}
           </div>
 
           <div className="game-controls">
