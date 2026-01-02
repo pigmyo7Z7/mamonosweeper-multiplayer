@@ -214,6 +214,8 @@ function createBoard(mode, safeRow = -1, safeCol = -1) {
       showNumber: false, // 倒した魔物で数値表示するか
       mark: 0,
       markBy: null, // マーキングした人
+      pinned: false, // ピン挿し
+      pinnedBy: null, // ピンを挿した人
       neighborSum: 0,
       revealedBy: null
     }))
@@ -358,6 +360,7 @@ export default function App() {
   const [rightClickStart, setRightClickStart] = useState(null);
   const [hoveredCell, setHoveredCell] = useState(null);
   const [tooltip, setTooltip] = useState({ show: false, text: '', x: 0, y: 0 });
+  const [ripples, setRipples] = useState([]); // 波紋エフェクト
   const longPressTimerRef = useRef(null);
   
   const boardRef = useRef(null);
@@ -757,6 +760,48 @@ export default function App() {
     setTooltip({ show: false, text: '', x: 0, y: 0 });
   };
 
+  // ホイールクリック（中クリック）でピン挿し
+  const handleMiddleClick = async (e, row, col) => {
+    if (e.button !== 1) return; // 中クリックのみ
+    e.preventDefault();
+    
+    if (gameState !== 'playing' || !board) return;
+    
+    const cellRef = ref(database, `rooms/${roomId}/board/${row}/${col}`);
+    await runTransaction(cellRef, (currentCell) => {
+      if (!currentCell) return currentCell;
+      // トグル
+      if (currentCell.pinned) {
+        currentCell.pinned = false;
+        currentCell.pinnedBy = null;
+      } else {
+        currentCell.pinned = true;
+        currentCell.pinnedBy = playerName;
+      }
+      return currentCell;
+    });
+    
+    // 波紋エフェクトを追加
+    if (boardRef.current) {
+      const cellEl = boardRef.current.querySelector(`[data-pos="${row}-${col}"]`);
+      if (cellEl) {
+        const rect = cellEl.getBoundingClientRect();
+        const boardRect = boardRef.current.getBoundingClientRect();
+        const rippleId = Date.now();
+        setRipples(prev => [...prev, {
+          id: rippleId,
+          x: rect.left - boardRect.left + rect.width / 2,
+          y: rect.top - boardRect.top + rect.height / 2,
+          color: getColorForPlayer(playerName)
+        }]);
+        // 1秒後に削除
+        setTimeout(() => {
+          setRipples(prev => prev.filter(r => r.id !== rippleId));
+        }, 1000);
+      }
+    }
+  };
+
   // キーボードで数字入力
   useEffect(() => {
     const handleKeyDown = async (e) => {
@@ -846,6 +891,9 @@ export default function App() {
       cls += cell.isDead ? ' cell-monster-dead' : ' cell-monster-alive';
     } else {
       cls += ' cell-revealed';
+    }
+    if (cell.pinned) {
+      cls += ' cell-pinned';
     }
     return cls;
   };
@@ -1115,12 +1163,16 @@ export default function App() {
                     style={getCellStyle(cell)}
                     onClick={() => handleClick(r, c)}
                     onContextMenu={handleContextMenu}
-                    onMouseDown={(e) => handleRightMouseDown(e, r, c)}
+                    onMouseDown={(e) => {
+                      handleRightMouseDown(e, r, c);
+                      handleMiddleClick(e, r, c);
+                    }}
                     onMouseUp={(e) => handleRightMouseUp(e, r, c)}
                     onMouseEnter={(e) => handleMouseEnter(e, r, c)}
                     onMouseLeave={handleMouseLeave}
                   >
                     {getCellContent(cell)}
+                    {cell.pinned && <div className="pin-marker" style={{ borderColor: getColorForPlayer(cell.pinnedBy) }}>📍</div>}
                   </div>
                 ))
               )}
@@ -1132,6 +1184,17 @@ export default function App() {
                 y={eff.y}
                 damage={eff.damage}
                 onComplete={() => removeDamageEffect(eff.id)}
+              />
+            ))}
+            {ripples.map(ripple => (
+              <div
+                key={ripple.id}
+                className="ripple-effect"
+                style={{
+                  left: ripple.x,
+                  top: ripple.y,
+                  borderColor: ripple.color
+                }}
               />
             ))}
           </div>
@@ -1150,7 +1213,7 @@ export default function App() {
       )}
 
       <div className="help-text">
-        左クリック: 開く ｜ 右クリック: マーキング ｜ 長押し: 解除 ｜ 数字キー: 直接入力
+        左クリック: 開く ｜ 右クリック: マーキング ｜ 長押し: 解除 ｜ 数字キー: 直接入力 ｜ ホイールクリック: ピン
       </div>
     </div>
   );
