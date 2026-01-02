@@ -855,7 +855,7 @@ export default function App() {
   }, [gameState, board, hoveredCell, roomId, modeConfig, playerName]);
 
   const changeMode = async (newMode) => {
-    if (!isHost || gameState === 'playing') return;
+    if (gameState === 'playing') return;
     
     const newHp = GAME_MODES[newMode].hp;
     
@@ -1061,42 +1061,27 @@ export default function App() {
         <div className="waiting-room">
           <p>プレイヤーを待っています...</p>
           
-          {isHost && (
-            <>
-              <div className="setting-section">
-                <label className="setting-label">モード</label>
-                <div className="mode-select">
-                  {Object.entries(GAME_MODES).map(([key, val]) => (
-                    <button
-                      key={key}
-                      onClick={() => changeMode(key)}
-                      className={`btn-mode ${mode === key ? 'active' : ''}`}
-                    >
-                      <span className="mode-icon">{val.icon}</span>
-                      <span className="mode-name">{val.name}</span>
-                      <span className="mode-desc">{val.description}</span>
-                      <span className="mode-info">{val.cols}×{val.rows} HP:{val.hp}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <button onClick={startGame} className="btn-start">
-                ゲーム開始！
-              </button>
-            </>
-          )}
-          
-          {!isHost && (
-            <div className="waiting-info">
-              <p className="waiting-text">ホストがゲームを開始するのを待っています...</p>
-              <p className="settings-preview">
-                モード: {modeConfig?.icon} {modeConfig?.name} ｜
-                {modeConfig?.cols}×{modeConfig?.rows} ｜
-                HP: {modeConfig?.hp}
-              </p>
+          <div className="setting-section">
+            <label className="setting-label">モード</label>
+            <div className="mode-select">
+              {Object.entries(GAME_MODES).map(([key, val]) => (
+                <button
+                  key={key}
+                  onClick={() => changeMode(key)}
+                  className={`btn-mode ${mode === key ? 'active' : ''}`}
+                >
+                  <span className="mode-icon">{val.icon}</span>
+                  <span className="mode-name">{val.name}</span>
+                  <span className="mode-desc">{val.description}</span>
+                  <span className="mode-info">{val.cols}×{val.rows} HP:{val.hp}</span>
+                </button>
+              ))}
             </div>
-          )}
+          </div>
+
+          <button onClick={startGame} className="btn-start">
+            ゲーム開始！
+          </button>
         </div>
       )}
 
