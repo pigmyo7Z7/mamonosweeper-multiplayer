@@ -997,8 +997,10 @@ export default function App() {
   };
 
   const getCellContent = (cell, row, col) => {
+    const circledNumbers = ['⓪', '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨'];
+    
     if (!cell.isRevealed) {
-      return cell.mark > 0 ? cell.mark : '';
+      return cell.mark > 0 ? circledNumbers[cell.mark] || cell.mark : '';
     }
     if (cell.isMonster) {
       if (cell.showNumber) {
@@ -1020,7 +1022,6 @@ export default function App() {
                         hoveredCell.col === col &&
                         !isJustRevealed;
       if (cell.isDead && isHovered) {
-        const circledNumbers = ['⓪', '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨'];
         return (
           <div className="monster-cell">
             <span className="monster-lv-overlay">{circledNumbers[cell.monsterLevel] || cell.monsterLevel}</span>
