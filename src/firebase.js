@@ -2,13 +2,13 @@ import { initializeApp } from 'firebase/app';
 import { getDatabase } from 'firebase/database';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBcqkbd8dMOapP3g1ss5ciru8bgWvuR86o",
-  authDomain: "minesweeper-multiplayer-435a0.firebaseapp.com",
-  databaseURL: "https://minesweeper-multiplayer-435a0-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "minesweeper-multiplayer-435a0",
-  storageBucket: "minesweeper-multiplayer-435a0.firebasestorage.app",
-  messagingSenderId: "620752201502",
-  appId: "1:620752201502:web:705396e2219e25cffa4b0f"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 const app = initializeApp(firebaseConfig);
